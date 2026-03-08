@@ -1,0 +1,21 @@
+# TDD state files (per-project, gitignored)
+.tdd-state.json
+tdd-session.jsonl
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Node
+node_modules/
+
+# Python
+__pycache__/
+*.pyc
+.venv/

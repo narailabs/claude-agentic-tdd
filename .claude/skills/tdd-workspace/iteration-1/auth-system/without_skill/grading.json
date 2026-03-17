@@ -1,0 +1,105 @@
+{
+  "expectations": [
+    {
+      "text": "Triggers the design gate (Phase 0) due to complexity",
+      "passed": false,
+      "evidence": "Trace explicitly states under 'No Design Gate': 'Does not ask the user to confirm architecture before coding', 'Does not produce a design document', 'Does not consider alternative approaches'. Section heading reads 'No Design Questions Asked -- Jumps Straight to Coding'."
+    },
+    {
+      "text": "Produces a design summary with components, data flow, key decisions",
+      "passed": false,
+      "evidence": "Trace states: 'No architecture design document or review gate' (Step 1). Summary confirms: 'Architecture decisions are implicit and undocumented. The user has no opportunity to steer the design before code is written.'"
+    },
+    {
+      "text": "Decomposes into at least 3 work units",
+      "passed": false,
+      "evidence": "Trace states under 'No Formal Decomposition with Dependency Analysis': 'Does not break the system into discrete work units'. The implementation is built linearly in one pass (scaffolding -> models -> routes -> tests) without formal work unit decomposition."
+    },
+    {
+      "text": "Identifies dependencies between units (login depends on registration)",
+      "passed": false,
+      "evidence": "Trace explicitly states: 'Does not analyze dependencies between components', 'Does not create a dependency graph'. Summary confirms: 'There is no dependency graph, no identification of parallelizable units'."
+    },
+    {
+      "text": "Respects dependency order in execution",
+      "passed": false,
+      "evidence": "Without formal work units or dependency analysis, there is no dependency ordering to respect. The trace shows a linear, intuitive build order (registration then login then reset) but this is incidental, not driven by explicit dependency resolution. The trace states: 'Work order is linear and intuitive rather than optimized'."
+    },
+    {
+      "text": "Each work unit goes through full RED→GREEN→review cycle",
+      "passed": false,
+      "evidence": "Trace is unambiguous: 'Tests Are Written AFTER Code (Code-First, Not Test-First)', 'No RED phase: tests are never seen failing before the implementation exists', 'No RED/GREEN/REFACTOR cycle enforcement', 'No anti-cheat verification'. There are no work units and no RED->GREEN cycle."
+    },
+    {
+      "text": "Runs a final integration test across all units",
+      "passed": false,
+      "evidence": "Trace shows only 'npx jest' and 'npx tsc --noEmit' as final verification (Step 5). There is no dedicated integration test step. The tests written in Step 4g are unit-level tests for each endpoint. No cross-unit integration test (e.g., register then login then reset) is mentioned."
+    },
+    {
+      "text": "Report shows all work units with individual phase statuses",
+      "passed": false,
+      "evidence": "Trace explicitly states under 'No Structured Reporting': 'Final output is conversational, not structured', 'No work unit status table', 'No coverage metrics summary', 'No spec compliance matrix', 'No session log for future reference'."
+    }
+  ],
+  "summary": {
+    "passed": 0,
+    "failed": 8,
+    "total": 8,
+    "pass_rate": 0.0
+  },
+  "execution_metrics": {
+    "note": "No metrics.json found. Trace is a simulated/hypothetical reconstruction of default Claude Code behavior, not an actual execution.",
+    "transcript_chars": 9292,
+    "output_chars": 3700
+  },
+  "timing": {
+    "note": "No timing.json found. Trace estimates 5-8 minutes total for default behavior."
+  },
+  "claims": [
+    {
+      "claim": "Default Claude Code would produce a working authentication system",
+      "type": "quality",
+      "verified": false,
+      "evidence": "This is a hypothetical trace, not an actual execution. No code was produced or tested. The claim is plausible but unverified."
+    },
+    {
+      "claim": "Tests are written AFTER implementation (code-first)",
+      "type": "process",
+      "verified": true,
+      "evidence": "Trace Step 4 ordering clearly shows implementation files written in Steps 4a-4f, tests in Step 4g. This matches well-known default Claude Code behavior."
+    },
+    {
+      "claim": "No agent teams or parallel execution is used",
+      "type": "process",
+      "verified": true,
+      "evidence": "Default Claude Code does not have agent team capabilities without the experimental flag and a skill. This is a factual property of the baseline."
+    },
+    {
+      "claim": "Default behavior takes approximately 5-8 minutes",
+      "type": "factual",
+      "verified": false,
+      "evidence": "No actual timing data available. This is an estimate from the simulated trace."
+    }
+  ],
+  "user_notes_summary": {
+    "uncertainties": [],
+    "needs_review": [],
+    "workarounds": []
+  },
+  "eval_feedback": {
+    "suggestions": [
+      {
+        "reason": "This is a simulated baseline trace, not an actual execution. All 8 assertions trivially fail because the TDD skill features (design gate, work units, RED/GREEN cycles, structured reports) are by definition absent from default Claude Code. The assertions are designed to measure TDD skill capabilities, so a 0% baseline pass rate is expected and correct -- but it also means these assertions have zero discriminating power for the baseline condition. They cannot distinguish a 'pretty good' baseline from a 'terrible' one."
+      },
+      {
+        "assertion": "Runs a final integration test across all units",
+        "reason": "Default Claude Code could plausibly write an integration-style test (e.g., register then login). This assertion might not always fail for the baseline if the prompt explicitly mentioned integration testing. Consider tightening to require a specific integration test format or cross-unit verification step."
+      },
+      {
+        "assertion": "Respects dependency order in execution",
+        "reason": "The baseline arguably does respect a natural dependency order (registration before login) even though it's implicit. The distinction being tested is 'explicit dependency analysis' vs 'intuitive ordering', but the assertion text could be read either way. Consider rewording to 'Produces an explicit dependency graph and executes units in topological order'."
+      }
+    ],
+    "overall": "The assertions are well-designed for measuring TDD skill capabilities and correctly yield a 0% baseline. However, because this is a simulated trace rather than an actual execution, the grading is evaluating a hypothetical narrative rather than real outputs. For higher confidence, consider running the actual prompt without the skill and grading the real transcript."
+  }
+}

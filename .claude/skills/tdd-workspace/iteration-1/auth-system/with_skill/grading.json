@@ -1,0 +1,121 @@
+{
+  "expectations": [
+    {
+      "text": "Triggers the design gate (Phase 0) due to complexity",
+      "passed": true,
+      "evidence": "Trace Phase 0 section explicitly states 'Result: Design gate TRIGGERS. Multiple conditions are met.' with three conditions satisfied: 3+ distinct features, external integrations, and ambiguous data flow. Summary confirms: 'Triggered because: 3 distinct features (registration, login, password reset).'"
+    },
+    {
+      "text": "Produces a design summary with components, data flow, key decisions",
+      "passed": true,
+      "evidence": "Trace Step 0c contains a full design summary with sections: 'Components' (4 listed: UserRegistration, UserLogin, PasswordReset, UserStore), 'Data Flow' (registration->login->reset flows described), 'Key Decisions' (5 decisions including stateless JWT, pluggable notification, account lockout policy, bcrypt), and 'Out of Scope' section."
+    },
+    {
+      "text": "Decomposes into at least 3 work units",
+      "passed": true,
+      "evidence": "Trace Phase 2 explicitly produces 3 work units: 'Unit 1: user-registration', 'Unit 2: user-login', 'Unit 3: password-reset'. Summary confirms: 'Work units: 3'."
+    },
+    {
+      "text": "Identifies dependencies between units (login depends on registration)",
+      "passed": true,
+      "evidence": "Trace Phase 2 Dependency Analysis section states: 'UserLogin depends on user-registration -- it needs to look up users by email and verify hashed passwords.' and 'PasswordReset depends on user-registration'. Work unit definitions include explicit 'Dependencies: [user-registration]' for units 2 and 3, and 'Dependencies: none' for unit 1."
+    },
+    {
+      "text": "Respects dependency order in execution",
+      "passed": true,
+      "evidence": "Trace Phase 4 states: 'Execution plan: 1. Run user-registration first (alone). 2. Once user-registration completes, run user-login and password-reset in parallel.' The execution timeline shows Unit 1 completing fully before Units 2 and 3 begin. Summary confirms: 'Level 0: user-registration runs first (no dependencies), Level 1: user-login and password-reset run in parallel.'"
+    },
+    {
+      "text": "Each work unit goes through full RED→GREEN→review cycle",
+      "passed": true,
+      "evidence": "Trace documents all 6 sub-steps for Unit 1 in detail (Steps 4a-4f: Test Writer, RED verification, Code Writer, GREEN verification, Spec Compliance Review, Adversarial Review). Units 2 and 3 state 'Steps 4b-4f: Same Pipeline as Unit 1' with RED, GREEN, spec compliance, and adversarial review each mentioned. Summary's 'Per-Unit Pipeline' section confirms all 6 sub-steps applied to each unit."
+    },
+    {
+      "text": "Runs a final integration test across all units",
+      "passed": true,
+      "evidence": "Trace Phase 5 ('Final Review -- Integration Check') describes: Step 5a runs 'npx vitest run' for all 3 test files together, Step 5b verifies pristine output, Step 5c performs holistic code review, Step 5d checks cross-unit integration (registration->login flow, registration->reset flow, lockout->reset edge case), and Step 5e enforces anti-rationalization."
+    },
+    {
+      "text": "Report shows all work units with individual phase statuses",
+      "passed": true,
+      "evidence": "Trace Phase 6 shows the report template with all 3 work units (User Registration, User Login, Password Reset) each having individual phase status tables with columns: Phase, Status, Attempts, Notes. Each phase (Test Writer, RED Verification, Code Writer, GREEN Verification, Spec Compliance, Adversarial Review) has its own row with status. Summary section shows '3/3 units completed'."
+    }
+  ],
+  "summary": {
+    "passed": 8,
+    "failed": 0,
+    "total": 8,
+    "pass_rate": 1.0
+  },
+  "execution_metrics": {
+    "output_chars": 39141,
+    "transcript_chars": 33999,
+    "note": "No metrics.json found in outputs directory. Character counts computed from trace.md and summary.md file sizes."
+  },
+  "timing": {
+    "note": "No timing.json found."
+  },
+  "claims": [
+    {
+      "claim": "The transcript represents an actual execution of the TDD skill",
+      "type": "process",
+      "verified": false,
+      "evidence": "The transcript is written in a hypothetical/descriptive style throughout. It uses phrases like 'Expected Test Writer output', 'Assumed detection result (typical Node/TypeScript project)', 'assume the user confirms', 'Expected verdict: COMPLIANT (assuming the Code Writer did a good job)', and 'Expected verdict: PASS (with possible minor recommendations)'. There are no actual tool call logs, no real command outputs, no actual error messages or test results. This reads as a detailed walkthrough of what the skill WOULD do, not what it DID do."
+    },
+    {
+      "claim": "3 clarifying questions were asked one-at-a-time during Design Gate",
+      "type": "process",
+      "verified": false,
+      "evidence": "The trace shows 3 questions but the responses are hypothetical: 'The user responds (e.g., \"1 hour, one active token at a time\")'. Real execution would show actual user input, not example responses."
+    },
+    {
+      "claim": "All tests pass in the final integration check",
+      "type": "quality",
+      "verified": false,
+      "evidence": "Phase 5 describes running 'npx vitest run' but provides no actual command output. The trace says to read actual output and not assume success, but the trace itself does not contain any actual test output -- only the claim that all tests pass."
+    },
+    {
+      "claim": "Information barrier was enforced between Test Writer and Code Writer",
+      "type": "process",
+      "verified": true,
+      "evidence": "The trace explicitly documents the information barrier in Step 4c with a 'Lead Verification Checklist' that includes: 'Prompt contains test file contents read from DISK', 'Prompt does NOT contain any Test Writer prompt text', 'Test file checksums have been recorded'. The Key Behavioral Notes section also emphasizes this pattern."
+    },
+    {
+      "claim": "Anti-cheat checksums were recorded and verified",
+      "type": "process",
+      "verified": true,
+      "evidence": "Step 4b documents 'shasum -a 256' for recording checksums after RED verification, and Step 4d documents comparing checksums during GREEN verification. The process is described for Unit 1 and referenced for Units 2 and 3."
+    },
+    {
+      "claim": "Units 2 and 3 ran in parallel",
+      "type": "process",
+      "verified": false,
+      "evidence": "The trace describes parallel execution and shows an ASCII timeline diagram, but since this is a simulated trace rather than a real execution, there is no evidence of actual concurrent agent spawning. The claim is architecturally plausible but unverified."
+    }
+  ],
+  "user_notes_summary": {
+    "uncertainties": [],
+    "needs_review": [],
+    "workarounds": [],
+    "note": "No user_notes.md file found in outputs directory."
+  },
+  "eval_feedback": {
+    "suggestions": [
+      {
+        "reason": "The transcript is a simulated/hypothetical walkthrough, not an actual execution log. Every assertion passes because the trace was authored to describe correct behavior, but there is no evidence that the skill was actually invoked and produced real outputs. A discriminating eval should require actual tool call logs, real command outputs, and generated source files on disk as evidence -- not a narrative description of what the skill would do."
+      },
+      {
+        "assertion": "Each work unit goes through full RED→GREEN→review cycle",
+        "reason": "This assertion passes based on the trace describing the cycle, but Units 2 and 3 only say 'Steps 4b-4f: Same Pipeline as Unit 1' without detail. A stronger assertion would require actual test runner output (exit codes, failure counts, pass counts) for each unit individually."
+      },
+      {
+        "assertion": "Runs a final integration test across all units",
+        "reason": "The assertion is satisfied by the trace describing Phase 5, but there is no actual 'npx vitest run' output shown. The trace even notes the importance of reading actual output rather than assuming success, yet the trace itself contains no actual output. Consider requiring the actual test runner output as an artifact in the outputs directory."
+      },
+      {
+        "reason": "No assertion checks whether actual source files (*.ts) and test files (*.test.ts) were produced. The trace describes file creation but the outputs directory contains only trace.md and summary.md. An assertion like 'Implementation and test files exist on disk' would catch cases where the skill describes work but doesn't actually produce artifacts."
+      }
+    ],
+    "overall": "All 8 assertions pass against this trace, but the pass rate is inflated because the transcript is a simulated walkthrough rather than a real execution log. The assertions test whether the skill's DESCRIBED behavior matches expectations, not whether the skill ACTUALLY performed the behavior. The eval would be significantly more discriminating if it required real artifacts (source files, test output logs, state files) as evidence rather than accepting a narrative trace."
+  }
+}

@@ -1,0 +1,81 @@
+{
+  "skill_name": "tdd",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "/tdd implement a string utility module with functions: capitalize(str) that capitalizes the first letter, truncate(str, maxLen) that truncates with ellipsis, and slugify(str) that converts to URL-safe slugs",
+      "expected_output": "Should decompose into 1-3 work units, detect the project's test framework, write failing tests first, then implement. All tests should pass at the end. A tdd-report.md should be generated.",
+      "files": [],
+      "expectations": [
+        "Detects or asks about the test framework before writing tests",
+        "Presents a work decomposition plan and asks for user confirmation before proceeding",
+        "Test Writer creates test files BEFORE any implementation code exists",
+        "Tests fail initially (RED phase verified) — the skill explicitly checks for non-zero exit code",
+        "Code Writer receives test file contents read from disk, not from Test Writer output (information barrier)",
+        "Code Writer does NOT modify test files (checksum verification mentioned or performed)",
+        "All tests pass after implementation (GREEN phase)",
+        "An adversarial review step is performed on the test+implementation pair",
+        "A tdd-report.md or equivalent summary is generated at the end",
+        "The skill does NOT skip any verification steps even for simple specs"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "/tdd build a user authentication system with registration (email validation, password hashing, duplicate detection), login (JWT tokens, failed attempt tracking), and password reset (token generation, expiry, email notification)",
+      "expected_output": "Should trigger the design gate (Phase 0) due to complexity, decompose into 3+ work units with dependencies, handle the units in correct dependency order, and produce a comprehensive report.",
+      "files": [],
+      "expectations": [
+        "Triggers the design gate (Phase 0) — asks clarifying questions about the auth system before decomposing",
+        "Produces a design summary with components, data flow, and key decisions before proceeding",
+        "Decomposes into at least 3 work units (registration, login, password-reset or similar)",
+        "Identifies dependencies between units (login depends on registration, password-reset depends on registration)",
+        "Respects dependency order — implements registration before login and password-reset",
+        "Each work unit goes through the full RED→GREEN→review cycle independently",
+        "Runs a final integration test across all units after individual completion",
+        "The report shows all work units with their individual phase statuses"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "/tdd implement against src/__tests__/calculator.test.ts",
+      "expected_output": "Should detect entry point mode 3 (user-provided test), skip the Test Writer phase entirely, and go straight to Code Writer to make the existing tests pass.",
+      "files": [],
+      "expectations": [
+        "Detects that the user provided an existing test file (entry point mode 3)",
+        "Skips the Test Writer phase — does NOT rewrite or replace the user's test file",
+        "Reads the existing test file from disk and passes contents to the Code Writer",
+        "Still performs GREEN verification (checksum check, all tests pass)",
+        "Still performs adversarial review on the test+implementation pair",
+        "Does NOT ask the user to confirm a work decomposition plan for a single provided test"
+      ]
+    },
+    {
+      "id": 4,
+      "prompt": "/tdd add test coverage for src/utils/ --skip-design",
+      "expected_output": "Should detect entry point mode 2 (existing codebase), analyze the existing code in src/utils/, generate characterization tests, then build proper TDD tests. Should respect the --skip-design flag.",
+      "files": [],
+      "expectations": [
+        "Detects entry point mode 2 — existing codebase coverage mode",
+        "Reads and analyzes the existing source files in src/utils/ before writing tests",
+        "Skips the design gate because --skip-design flag was passed",
+        "Generates tests that characterize existing behavior, not just new features",
+        "Still enforces RED verification — tests should fail initially if testing new edge cases",
+        "Produces a report showing coverage additions"
+      ]
+    },
+    {
+      "id": 5,
+      "prompt": "/tdd I need something that handles payments. like credit cards and stuff. also refunds maybe? idk the details yet",
+      "expected_output": "Should recognize this as an ambiguous spec that needs the design gate. Should ask clarifying questions one at a time rather than charging ahead with assumptions.",
+      "files": [],
+      "expectations": [
+        "Triggers the design gate (Phase 0) due to ambiguity",
+        "Asks clarifying questions about the payment system — does NOT assume specific technologies or providers",
+        "Asks questions one at a time, not as a dump of 10 questions at once",
+        "Does NOT start writing code or tests before clarifying the spec",
+        "Proposes design approaches with trade-offs (e.g., Stripe vs custom, sync vs async processing)",
+        "Waits for user approval of the design before decomposing into work units"
+      ]
+    }
+  ]
+}

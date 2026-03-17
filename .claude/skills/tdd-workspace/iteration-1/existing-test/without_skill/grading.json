@@ -1,0 +1,92 @@
+{
+  "expectations": [
+    {
+      "text": "Detects entry point mode 3 (user-provided test)",
+      "passed": false,
+      "evidence": "The transcript shows Claude Code treats '/tdd implement against src/__tests__/calculator.test.ts' as a plain natural-language instruction. It infers the intent ('make these tests pass') but has no concept of 'entry point modes.' Step 1 states: 'Claude Code does not recognize /tdd as a registered skill command. It treats the entire string as a natural-language instruction.' There is no mode detection, just general intent parsing."
+    },
+    {
+      "text": "Skips Test Writer phase entirely",
+      "passed": true,
+      "evidence": "The transcript confirms default Claude Code does not write new tests. It reads the existing test file (Step 2) and proceeds directly to implementation (Step 4). Since default Claude Code has no TDD phases at all, it trivially skips Test Writer. However, this is vacuously true — there is no Test Writer phase to skip because there are no phases at all."
+    },
+    {
+      "text": "Reads existing test file from disk and passes to Code Writer",
+      "passed": false,
+      "evidence": "The transcript confirms the test file is read (Step 2: 'Read: src/__tests__/calculator.test.ts'). However, there is no 'Code Writer' agent — default Claude Code is a single agent that reads the file and writes the implementation itself. The assertion implies a structured handoff between agents, which does not occur. The test file is read but not 'passed to Code Writer' as a distinct step."
+    },
+    {
+      "text": "Still performs GREEN verification (checksum + all tests pass)",
+      "passed": false,
+      "evidence": "The transcript states tests are 'LIKELY (not guaranteed)' to be run (Step 5), but explicitly notes there is no checksum verification. The Critical Gap Analysis section states: 'No checksum verification' and 'There is no formal protocol enforcing this.' The summary table confirms 'Protect test files from modification: NO.' GREEN verification in the TDD sense (checksum of test file + enforced test pass) is absent."
+    },
+    {
+      "text": "Still performs adversarial review",
+      "passed": false,
+      "evidence": "The transcript explicitly states in Critical Gap Analysis #4: 'Adversarial Review: ABSENT. No independent review of test quality or implementation quality. Claude Code is both the implementer and the (implicit) reviewer, creating a conflict of interest.' The summary table confirms 'Independent adversarial review: NO.'"
+    },
+    {
+      "text": "Does NOT rewrite or replace the user's test file",
+      "passed": false,
+      "evidence": "The transcript explicitly identifies test file modification as the most dangerous gap. Critical Gap Analysis #1 states: 'Default Claude Code has NO guardrail against modifying the test file. If the implementation is difficult, Claude Code might: \"Fix\" a test that it thinks is wrong, Adjust assertions to match its implementation, Add .skip to problematic tests, Change import paths in the test file.' Risk level is rated MEDIUM-HIGH. Since this is a predicted trace (no actual execution), there is no positive evidence the test file would be preserved. The absence of any protection mechanism means this expectation cannot be verified as passing."
+    }
+  ],
+  "summary": {
+    "passed": 1,
+    "failed": 5,
+    "total": 6,
+    "pass_rate": 0.17
+  },
+  "execution_metrics": {
+    "tool_calls": {},
+    "total_tool_calls": 0,
+    "total_steps": 6,
+    "errors_encountered": 0,
+    "output_chars": 9844,
+    "transcript_chars": 7266
+  },
+  "timing": {},
+  "claims": [
+    {
+      "claim": "Default Claude Code delivers roughly 60-70% of the value for this scenario",
+      "type": "quality",
+      "verified": false,
+      "evidence": "This percentage is an editorial judgment in the summary. It cannot be verified from the simulated trace. Given that 5 of 6 TDD-specific expectations fail, '60-70%' seems generous if measured against TDD discipline. It may be fair if measured against 'does the code end up working.'"
+    },
+    {
+      "claim": "Claude Code WOULD correctly recognize this as a 'make the tests pass' task",
+      "type": "process",
+      "verified": true,
+      "evidence": "This is a reasonable prediction. The phrasing 'implement against [test file]' is unambiguous. The transcript's reasoning in Step 1 is sound."
+    },
+    {
+      "claim": "Claude Code WOULD read the test file first",
+      "type": "process",
+      "verified": true,
+      "evidence": "Standard Claude Code behavior when a file is referenced. This is well-established behavior."
+    },
+    {
+      "claim": "Claude Code WOULD LIKELY run tests after implementation",
+      "type": "process",
+      "verified": false,
+      "evidence": "The transcript itself hedges with 'LIKELY but not guaranteed' and lists scenarios where tests might not be run. Since this is a predicted trace, there is no actual evidence of test execution."
+    }
+  ],
+  "user_notes_summary": null,
+  "eval_feedback": {
+    "suggestions": [
+      {
+        "assertion": "Skips Test Writer phase entirely",
+        "reason": "This assertion is trivially satisfied for a baseline run — default Claude Code has no phases, so 'skipping' a phase is vacuous. It passed here but provides no discriminating signal. Consider rephrasing to something like 'Does not generate new test cases when existing tests are provided' which tests meaningful behavior rather than phase awareness."
+      },
+      {
+        "assertion": "Does NOT rewrite or replace the user's test file",
+        "reason": "For a simulated/predicted trace, this assertion cannot be definitively graded either way — the trace predicts a risk but no actual execution occurred. In a real execution, this should verify the test file's content is byte-identical before and after. Consider requiring a checksum comparison in the eval harness."
+      },
+      {
+        "reason": "No assertion checks whether the implementation actually makes the tests pass. The assertions focus on process discipline (modes, phases, reviews) but not the core outcome — does the code work? Consider adding: 'All tests in the referenced test file pass after implementation.'"
+      }
+    ],
+    "overall": "The assertions are well-designed for evaluating TDD process discipline, but the 'Skips Test Writer phase' assertion is trivially satisfied in baseline. Also, no assertion covers the fundamental outcome (tests actually passing), which means a baseline that writes correct code but skips all process would fail on 5/6 assertions equally with one that writes broken code."
+  }
+}

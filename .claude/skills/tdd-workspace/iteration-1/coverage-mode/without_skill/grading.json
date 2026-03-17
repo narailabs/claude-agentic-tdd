@@ -1,0 +1,101 @@
+{
+  "expectations": [
+    {
+      "text": "Detects entry point mode 2 (existing codebase)",
+      "passed": false,
+      "evidence": "Transcript Step 1 states: 'Default Claude Code does not recognize /tdd as a registered skill command. It treats the entire input as a natural language request.' There is no formal entry point mode detection. Claude simply interprets the request as 'write tests for existing code' without any structured mode classification."
+    },
+    {
+      "text": "Reads and analyzes existing source files before writing tests",
+      "passed": true,
+      "evidence": "Transcript Step 2 shows Claude reading source files (Read calls for stringHelpers.ts, dateUtils.ts, validators.ts, etc.) and checking test infrastructure (Glob for test files, Read package.json) before writing any tests in Step 3. However, the transcript notes this analysis is 'reasonable but shallow -- it is reconnaissance, not structured characterization.'"
+    },
+    {
+      "text": "Skips design gate because --skip-design flag was passed",
+      "passed": false,
+      "evidence": "Transcript Step 1 states: 'The --skip-design flag is ignored or interpreted loosely as \"don't overthink the architecture, just write tests.\"' There is no design gate concept in default Claude Code, so the flag cannot meaningfully skip it. The absence of a design gate is incidental, not a response to the flag."
+    },
+    {
+      "text": "Generates tests that characterize existing behavior",
+      "passed": false,
+      "evidence": "Transcript 'Problem 10: No Characterization Test Methodology' states: 'Default Claude does not follow this methodology. It writes tests that happen to pass against the current implementation, but there is no verification that the tests are actually characterizing meaningful behavior.' Summary confirms: 'Default Claude skips step 2 entirely. It writes tests that happen to pass, but there is no verification that they would catch meaningful regressions. The tests are confirmation tests, not characterization tests.'"
+    },
+    {
+      "text": "Still enforces RED verification for new edge case tests",
+      "passed": false,
+      "evidence": "Transcript 'Problem 2: No RED Phase Verification' states: 'Default Claude never verifies that tests fail before implementation exists. Since the implementation already exists (coverage mode), this means Claude never verifies that the tests would catch a regression.' The behavior comparison table confirms: RED verification is 'None' for default Claude Code."
+    },
+    {
+      "text": "Produces a report showing coverage additions",
+      "passed": false,
+      "evidence": "Transcript Step 5 states: 'Claude produces an informal summary... No structured report. No metrics on assertion density. No anti-cheat verification.' The outputs directory contains only trace.md and summary.md (meta-documents about the baseline behavior), no actual coverage report or structured output."
+    }
+  ],
+  "summary": {
+    "passed": 1,
+    "failed": 5,
+    "total": 6,
+    "pass_rate": 0.17
+  },
+  "execution_metrics": {
+    "tool_calls": {},
+    "total_tool_calls": 0,
+    "total_steps": 5,
+    "errors_encountered": 0,
+    "output_chars": 12053,
+    "transcript_chars": 9810
+  },
+  "timing": {},
+  "claims": [
+    {
+      "claim": "Default Claude reads source files before writing tests",
+      "type": "process",
+      "verified": true,
+      "evidence": "Transcript Step 2 documents Read calls for source files before Step 3 writes tests"
+    },
+    {
+      "claim": "Default Claude writes tests that pass against the current implementation",
+      "type": "quality",
+      "verified": true,
+      "evidence": "Transcript Step 4 states Claude runs tests and fixes test-side errors until they pass. Summary confirms 'syntactically correct tests that pass against the current implementation.'"
+    },
+    {
+      "claim": "Default Claude writes all tests in a single pass",
+      "type": "process",
+      "verified": true,
+      "evidence": "Transcript Step 3: 'Write test files for all of them in a single pass' with multiple Write calls shown together"
+    },
+    {
+      "claim": "Tests mirror implementation structure 1:1",
+      "type": "quality",
+      "verified": true,
+      "evidence": "Transcript Problem 9 describes implementation-mirroring in detail, and Step 3 shows one test file per source file"
+    },
+    {
+      "claim": "No adversarial review occurs",
+      "type": "process",
+      "verified": true,
+      "evidence": "Transcript Problem 5 explicitly states: 'Default Claude does not review its own test quality. There is no second pass.' Behavior table confirms 'None' for adversarial review."
+    }
+  ],
+  "user_notes_summary": null,
+  "eval_feedback": {
+    "suggestions": [
+      {
+        "assertion": "Reads and analyzes existing source files before writing tests",
+        "reason": "This assertion is easily satisfied by any LLM approach -- reading files before writing tests is standard behavior, not a differentiating TDD capability. The assertion passed for the baseline, which means it does not discriminate between skill and no-skill. Consider tightening to check for structured analysis (e.g., dependency graph, critical-function prioritization, or explicit characterization plan) rather than just 'reads files first.'"
+      },
+      {
+        "assertion": "Generates tests that characterize existing behavior",
+        "reason": "This assertion is somewhat ambiguous. Default Claude does generate tests that pass against existing behavior -- they just lack rigor. Consider making the assertion more specific: 'Generates characterization tests with RED verification proving they detect behavior changes' to make it clearly discriminating."
+      },
+      {
+        "reason": "No assertion checks whether tests are decomposed into independent work units with dependency ordering. The transcript identifies this as a key gap (Problem 7) but no expectation covers it."
+      },
+      {
+        "reason": "No assertion checks for anti-pattern detection or assertion density enforcement, both of which are called out as major gaps in the transcript. These are highly discriminating properties -- baseline would clearly fail and a proper TDD skill should pass."
+      }
+    ],
+    "overall": "The assertions are reasonable but could be more discriminating. One assertion (file reading) passes trivially for the baseline, reducing the eval's ability to distinguish skill vs. no-skill performance. Consider adding assertions for anti-pattern detection, assertion density, and structured decomposition, which represent clear differentiators."
+  }
+}

@@ -101,6 +101,20 @@ Determine the mode based on context:
 2. **Existing codebase**: User says "add tests to..." or "add test coverage for..." — generate characterization tests first, then new feature tests
 3. **User-provided test**: User says "implement against this test..." or provides a failing test file — skip Test Writer, go directly to Code Writer
 
+### Mode-Specific Adaptations
+
+**Mode 2 (Existing Codebase)** requires special handling:
+- **Design gate**: Skip by default (characterizing existing code, not designing new features). Only trigger if the user explicitly passes `--design`.
+- **Test Writer**: Receives spec-contracts derived from reading existing source files (reverse-engineered behavior specs, not forward requirements).
+- **RED verification**: Adapted — see "Coverage Mode RED Verification" below.
+- **Code Writer**: May be a no-op if characterization tests already pass against existing code. If tests pass immediately, skip Code Writer and proceed to review.
+- **GREEN verification**: Standard — tests must pass and test files must be unchanged.
+
+**Mode 3 (User-Provided Test)** skips:
+- Test Writer phase entirely
+- RED verification (user owns the tests; trust their quality)
+- Design gate
+
 ## Phase 0: Design Gate (Optional)
 
 When the specification is complex (multi-unit, ambiguous, or architecturally significant), run a design refinement step before decomposition. Skip this phase for simple specs or when `--skip-design` is passed.
@@ -115,6 +129,7 @@ Run the design gate when ANY of:
 
 Skip when:
 - Single-unit spec with clear inputs/outputs
+- Existing codebase coverage mode (entry point mode 2) — unless `--design` is explicitly passed
 - User-provided failing test (entry point mode 3)
 - User passes `--skip-design`
 
@@ -258,11 +273,23 @@ Reviewer will receive. If it wasn't created, re-prompt the Test Writer.
 
 Read `reference/anti-cheat.md` for the full verification rules.
 
-After the Test Writer completes, run verification:
+After the Test Writer completes, run verification. The process differs by entry point mode:
 
+**Mode 1 (New Feature) — Standard RED Verification:**
 1. **Run tests**: Execute the test command via Bash. Capture exit code and output.
 2. **Verify RED**: Tests MUST fail (exit code != 0). If tests pass → anti-cheat violation. Re-prompt the Test Writer (up to `maxRetries`).
 3. **Verify correct failures**: Parse output. Failures should be "not found"/"not defined"/"undefined" — not syntax errors in the test file itself.
+
+**Mode 2 (Existing Codebase) — Coverage Mode RED Verification:**
+1. **Hide the implementation**: Temporarily rename the source file(s) being characterized.
+2. **Run tests**: They should fail with import/module errors (proving they actually depend on the real code).
+3. **Restore the implementation**: Rename back.
+4. **Run tests again**: They should PASS (proving characterization is accurate).
+See `reference/anti-cheat.md` → "Coverage Mode RED Verification" for the full procedure.
+
+**Mode 3 (User-Provided Test)**: Skip RED verification entirely.
+
+**All modes** — these checks always apply:
 4. **Check assertion density**: Read the test file. Count assertion patterns (`expect(`, `assert`, `.toBe(`, etc.) per test function. Must meet minimum threshold.
 5. **Check behavior-over-implementation**: Scan for anti-patterns (excessive mocking, private method access, implementation-mirroring).
 

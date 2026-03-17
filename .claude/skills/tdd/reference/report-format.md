@@ -37,6 +37,7 @@ Generate at the end of each session. Human-readable Markdown.
 | RED Verification | [status] | — | [failure count], [assertion count] |
 | Code Writer | [status] | [N] | [any notes] |
 | GREEN Verification | [status] | — | [pass/fail] |
+| Spec Compliance | [status] | — | [N]/[N] requirements covered |
 | Adversarial Review | [status] | — | [pass/fail] |
 
 **Files created**:
@@ -100,6 +101,9 @@ One JSON object per line. Structured event log for debugging and replay.
 | `green.verification.start` | GREEN checks begin | `{unitId}` |
 | `green.verification.passed` | GREEN checks pass | `{unitId}` |
 | `green.verification.failed` | GREEN checks fail | `{unitId, reason, details}` |
+| `spec-review.spawned` | Spec compliance reviewer started | `{unitId}` |
+| `spec-review.compliant` | Spec compliance passed | `{unitId, requirementsCovered, total}` |
+| `spec-review.non-compliant` | Spec compliance failed | `{unitId, missingRequirements, scopeCreep}` |
 | `adversarial.spawned` | Reviewer started | `{unitId}` |
 | `adversarial.passed` | Reviewer approved | `{unitId, findings}` |
 | `adversarial.failed` | Reviewer rejected | `{unitId, findings}` |

@@ -29,6 +29,8 @@ Parse `$ARGUMENTS` for:
 - The specification text (required) — what to implement
 - `--skip-failed` — skip work units that fail after max retries instead of escalating
 - `--config <path>` — path to a custom `.tdd.config.json`
+- `--design` — force the design gate (Phase 0) even for simple specs
+- `--skip-design` — skip the design gate entirely
 
 If no arguments provided, ask the user what they want to implement.
 
@@ -53,9 +55,35 @@ Load configuration in priority order:
    antiCheat.flagPrivateMethodTests: true
    execution.maxParallelPairs: 3
    execution.skipFailedAfterRetries: false
+   execution.modelStrategy: "auto"
    reporting.generateReport: true
    reporting.generateSessionLog: true
    ```
+
+### Model Cost Optimization
+
+The `execution.modelStrategy` key controls how agents are assigned to work units:
+
+| Strategy | Behavior |
+|----------|----------|
+| `"auto"` (default) | Assess each work unit's complexity and assign models accordingly |
+| `"standard"` | Use the default model for all agents |
+| `"fast"` | Use the cheapest capable model for all agents |
+| `"capable"` | Use the most capable model for all agents |
+
+When `"auto"` is selected, assess each work unit:
+- **Simple** (1-2 files, clear spec, no external deps): use `haiku` for Test Writer and Code Writer, `sonnet` for reviewer
+- **Standard** (multi-file, some integration): use `sonnet` for all agents
+- **Complex** (architecture-sensitive, many deps, ambiguous spec): use `opus` for Test Writer and reviewer, `sonnet` for Code Writer
+
+Complexity signals:
+- Number of files involved
+- External dependencies or integrations
+- Ambiguity in the spec-contract
+- Number of edge cases identified
+- Cross-unit dependencies
+
+The model assignment is recorded in the state file per work unit and displayed in the report.
 
 When loading `.tdd.config.json`, flatten nested keys. Merged config is stored in the state file and passed to all teammates.
 
@@ -72,6 +100,57 @@ Determine the mode based on context:
 1. **Natural language spec** (default): User provides a description like "implement user authentication with registration and login"
 2. **Existing codebase**: User says "add tests to..." or "add test coverage for..." — generate characterization tests first, then new feature tests
 3. **User-provided test**: User says "implement against this test..." or provides a failing test file — skip Test Writer, go directly to Code Writer
+
+## Phase 0: Design Gate (Optional)
+
+When the specification is complex (multi-unit, ambiguous, or architecturally significant), run a design refinement step before decomposition. Skip this phase for simple specs or when `--skip-design` is passed.
+
+### Trigger Conditions
+
+Run the design gate when ANY of:
+- The spec mentions 3+ distinct features or components
+- The spec involves external integrations (APIs, databases, auth providers)
+- The spec is ambiguous about data flow, ownership, or error handling
+- The user explicitly requests design review (`--design` flag)
+
+Skip when:
+- Single-unit spec with clear inputs/outputs
+- User-provided failing test (entry point mode 3)
+- User passes `--skip-design`
+
+### Design Refinement Process
+
+1. **Clarifying questions**: Ask the user 1-3 targeted questions about ambiguities. Ask one at a time — do not dump a questionnaire. Examples:
+   - "Should password reset tokens expire? If so, after how long?"
+   - "Should registration send a verification email, or are accounts active immediately?"
+   - "What should happen if login fails 5 times — lockout, CAPTCHA, or nothing?"
+
+2. **Propose approaches** (when there are genuine trade-offs): Present 2-3 options with pros/cons. Example:
+   - "Option A: JWT tokens (stateless, scalable, but can't revoke)"
+   - "Option B: Session-based auth (revocable, but needs session store)"
+
+3. **Design summary**: Once clarified, present a brief design document:
+   ```
+   ## Design Summary
+
+   ### Components
+   - [component]: [responsibility]
+
+   ### Data Flow
+   [brief description of how data moves between components]
+
+   ### Key Decisions
+   - [decision]: [rationale]
+
+   ### Out of Scope
+   - [what this spec explicitly does NOT cover]
+   ```
+
+4. **User approval**: "Proceed with this design? [confirm/modify/cancel]"
+
+**HARD GATE**: No decomposition (Phase 2) until the design is approved. If the user modifies, iterate. If cancelled, stop.
+
+Store the approved design summary in the state file under `designSummary`. Pass it to the Test Writer alongside the spec-contract for each work unit.
 
 ## Phase 1: Framework Detection
 
@@ -219,7 +298,30 @@ After the Code Writer completes:
 3. **Run tests**: Execute the test command. ALL tests must pass (exit code == 0).
 4. If tests fail: re-prompt Code Writer with failure output (up to `maxRetries`).
 
-#### Step 4e: Adversarial Review
+#### Step 4e: Spec Compliance Review
+
+Read `reference/spec-compliance-reviewer-prompt.md` for the full template.
+
+Spawn a Spec Compliance Reviewer teammate with:
+- The `spec-contract-{unit_id}.md` contents (read from disk)
+- The design summary from state file (if Phase 0 was run)
+- Test file contents (read from disk)
+- Implementation file contents (read from disk)
+
+The reviewer checks:
+1. Requirement coverage — is every spec requirement implemented and tested?
+2. Missing requirements — are there implied requirements nobody addressed?
+3. Scope creep — does the implementation include features NOT in the spec?
+4. API contract accuracy — do signatures and types match the spec?
+5. Integration readiness — are interfaces compatible with dependent units?
+
+If the reviewer finds NON-COMPLIANT issues: send the pair back for revision. The Test Writer adds missing tests, then the Code Writer re-implements.
+
+If COMPLIANT: proceed to adversarial review.
+
+**ORDERING RULE**: Spec compliance MUST pass before adversarial review runs. There is no value in reviewing code quality for an implementation that doesn't match the spec.
+
+#### Step 4f: Adversarial Review
 
 Read `reference/adversarial-reviewer-prompt.md` for the full template.
 
@@ -236,6 +338,8 @@ The reviewer checks:
 4. Cheating detection — did implementation exploit test weaknesses?
 5. Test quality — are assertions meaningful and specific?
 
+Also reference `reference/testing-anti-patterns.md` — flag any of the 5 documented anti-patterns.
+
 If the reviewer finds critical issues: log findings, send the pair back for revision (Test Writer re-writes tests addressing the gaps, then Code Writer re-implements).
 
 If the reviewer passes: mark work unit as completed in state file.
@@ -247,13 +351,29 @@ When the dependency graph allows parallel execution:
 - As each Test Writer completes, proceed with its RED → Code Writer → GREEN → Review pipeline independently
 - Track all concurrent pipelines in the state file
 
-## Phase 5: Final Review
+## Phase 5: Final Review — Verification Before Completion
+
+**IRON LAW**: No completion claim without fresh verification evidence. "It should work" is not evidence. "I'm confident" is not evidence. Only actual test output is evidence.
 
 After ALL work units complete:
 
-1. Run the FULL test suite (all test files together) to check for integration issues
-2. Review all generated code holistically — look for inconsistencies, naming conflicts, missing connections between units
-3. If integration issues found: report them and suggest fixes
+1. **Run the FULL test suite** (all test files together) to check for integration issues. Read the actual output — do not assume success.
+2. **Verify pristine output**: All tests pass, no warnings, no skipped tests, no pending tests. If the test runner reports anything other than clean green, investigate.
+3. **Review all generated code holistically** — look for inconsistencies, naming conflicts, missing connections between units
+4. **Cross-unit integration check**: Do units that depend on each other actually work together? Run any integration tests.
+5. If integration issues found: report them with evidence (actual test output) and fix before proceeding.
+
+### Verification Anti-Rationalization
+
+Do NOT accept these from any agent (including yourself):
+
+| Excuse | Response |
+|--------|----------|
+| "Tests should pass now" | Run them. Read the output. "Should" is not "did." |
+| "I'm confident this works" | Confidence without evidence is delusion. Run the tests. |
+| "The fix is obvious, no need to re-run" | Obvious fixes cause subtle bugs. Run the tests. |
+| "Only changed one line" | One-line changes break everything. Run the tests. |
+| "Same pattern as before" | Patterns don't guarantee correctness. Run the tests. |
 
 ## Phase 6: Report Generation
 
@@ -337,6 +457,45 @@ Always attempt team cleanup even if the session errors:
 - Shut down any remaining teammates
 - Update state file with error status
 - Generate partial report if any work completed
+
+## Systematic Debugging Protocol
+
+When tests fail during GREEN verification or final review and the Code Writer cannot fix them after `maxRetries`, switch to systematic debugging instead of immediately escalating.
+
+### The 4-Phase Debug Process
+
+**Phase D1: Root Cause Investigation**
+- Read the failing test output carefully. What is the actual vs expected value?
+- Trace the code path from test input to the point of failure.
+- Check: is this a logic bug, a dependency issue, a type mismatch, or a missing feature?
+
+**Phase D2: Pattern Analysis**
+- Is this the same failure as a previous retry? If the Code Writer keeps making the same mistake, the problem is likely architectural.
+- Are multiple tests failing for the same root cause? Fix the root cause, not the symptoms.
+- After 3+ failed fixes for the same issue: STOP. The design may be wrong. Consider going back to Phase 0 for this work unit.
+
+**Phase D3: Hypothesis and Test**
+- Form a specific hypothesis: "The bug is in X because Y"
+- **Write a regression test first** that isolates the bug. This test must fail, confirming the hypothesis.
+- Only then fix the implementation.
+
+**Phase D4: Verification**
+- Run the new regression test — it should pass.
+- Run ALL tests for this work unit — they should all pass.
+- Run the full test suite — no regressions in other units.
+
+### When to Trigger
+
+- Code Writer fails 2+ times on the same test
+- GREEN verification fails with non-obvious errors
+- Integration tests fail in Phase 5
+
+### Escalation
+
+If Phase D2 suggests an architectural problem:
+1. Log the findings
+2. Present to the user: "This unit's implementation is fighting the design. The test expects X but the architecture makes X difficult because Y. Options: (a) revise the design, (b) revise the test expectations, (c) accept increased complexity."
+3. Wait for user decision before proceeding.
 
 ## Phase 7: Cleanup
 

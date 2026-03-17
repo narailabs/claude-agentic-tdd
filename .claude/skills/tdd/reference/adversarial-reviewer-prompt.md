@@ -24,6 +24,15 @@ and catch cheating.
 
 Try to BREAK the tests. Find weaknesses. Catch cheating. Be adversarial.
 
+## Known Anti-Patterns
+
+Watch specifically for these documented anti-patterns (from testing-anti-patterns.md):
+1. **Testing Mock Behavior** — asserting on mocks instead of real outcomes
+2. **Test-Only Methods** — production code with methods only tests use
+3. **Mocking Without Understanding** — mocks that hide critical side effects
+4. **Incomplete Mocks** — partial mock objects missing fields downstream code needs
+5. **Integration Tests as Afterthought** — everything mocked, nothing tested end-to-end
+
 ## Review Checklist
 
 ### 1. Test Completeness

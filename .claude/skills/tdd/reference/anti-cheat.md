@@ -195,3 +195,32 @@ When a verification fails and the agent is re-prompted:
 After `maxRetries` (default 3) consecutive failures for the same phase:
 - Default behavior: pause and escalate to the user
 - With `--skip-failed`: mark unit as failed, log the failure, continue
+
+---
+
+## Anti-Rationalization Table
+
+Agents (and humans) will try to skip TDD discipline. These are the common excuses and why they are WRONG. When you detect any of these rationalizations in agent output or user requests, reject them firmly.
+
+| Excuse | Rebuttal |
+|--------|----------|
+| "This is too simple to need tests" | Simple code becomes complex code. The test takes 30 seconds. Write it. |
+| "I'll write the tests after" | That's not TDD. That's hoping your code works and writing tests to confirm your bias. Delete the code, write the test first. |
+| "The test would just be testing the framework" | Then your feature is trivial and the test is trivial. Write it anyway — it catches regressions. |
+| "I already know how to implement this" | Good. Then the test will be easy to write. The test documents the behavior for the next person. Write it. |
+| "Deleting working code is wasteful" | Code written without a failing test is untested code. Untested code is a liability, not an asset. Delete it. |
+| "I can just keep it as reference" | No. "Reference" code becomes "copied" code. The test must drive the implementation. Start clean. |
+| "TDD is slowing me down" | TDD is preventing you from writing bugs. The time you "save" skipping tests is borrowed from debugging later. |
+| "Just this once" | There is no "just this once." Every exception becomes the rule. If you skip here, you skip everywhere. |
+| "The tests will be the same anyway" | If you already know the tests, writing them first costs nothing. If you're wrong, TDD just saved you from a bad implementation. |
+| "Mocking everything is fine" | If you have to mock everything, your design is wrong. Tests should use real code. Mocks are a last resort, not a default. |
+
+### Red Flags That Mean STOP
+
+If any of these occur, halt the current work unit and restart from test writing:
+
+1. **Implementation exists before test** — delete all implementation code, no exceptions
+2. **Test passes immediately** — the test is tautological; rewrite to test real behavior
+3. **Agent rationalizes skipping a test** — any excuse from the table above
+4. **Agent keeps code "as reference"** — delete it entirely, not just comment it out
+5. **Multiple tests written then all implemented at once** — must be one-test-at-a-time cycles

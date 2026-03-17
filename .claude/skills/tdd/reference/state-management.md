@@ -11,6 +11,7 @@ The `.tdd-state.json` file tracks session progress for incremental runs. It is g
   "startedAt": "ISO-8601",
   "updatedAt": "ISO-8601",
   "spec": "Original user specification text",
+  "designSummary": "Approved design summary from Phase 0 (null if skipped)",
   "entryPoint": "natural-language-spec | existing-codebase | user-provided-test",
   "framework": {
     "language": "typescript",
@@ -27,6 +28,7 @@ The `.tdd-state.json` file tracks session progress for incremental runs. It is g
     "flagPrivateMethodTests": true,
     "maxParallelPairs": 3,
     "skipFailedAfterRetries": false,
+    "modelStrategy": "auto",
     "generateReport": true,
     "generateSessionLog": true
   },
@@ -36,7 +38,13 @@ The `.tdd-state.json` file tracks session progress for incremental runs. It is g
       "name": "Human-readable name",
       "specContract": "Detailed spec contract text",
       "dependsOn": [],
-      "status": "pending | test-writing | red-verification | code-writing | green-verification | adversarial-review | completed | failed",
+      "complexity": "simple | standard | complex",
+      "modelAssignment": {
+        "testWriter": "haiku | sonnet | opus",
+        "codeWriter": "haiku | sonnet | opus",
+        "reviewer": "sonnet | opus"
+      },
+      "status": "pending | test-writing | red-verification | code-writing | green-verification | adversarial-review | spec-review | completed | failed",
       "testFiles": ["path/to/test.test.ts"],
       "implFiles": ["path/to/impl.ts"],
       "testWriter": {
@@ -63,6 +71,13 @@ The `.tdd-state.json` file tracks session progress for incremental runs. It is g
         "testFilesUnchanged": true,
         "skipMarkersFound": []
       },
+      "specComplianceReview": {
+        "status": "pending | in-progress | compliant | non-compliant",
+        "requirementsCovered": 0,
+        "requirementsTotal": 0,
+        "missingRequirements": [],
+        "scopeCreep": []
+      },
       "adversarialReview": {
         "status": "pending | in-progress | passed | failed",
         "findings": [],
@@ -84,10 +99,10 @@ The `.tdd-state.json` file tracks session progress for incremental runs. It is g
 ## State Transitions
 
 ```
-pending → test-writing → red-verification → code-writing → green-verification → adversarial-review → completed
-                ↑              |                   ↑              |                     |
-                └── (retry) ───┘                   └── (retry) ───┘                     ↓
-                                                                                     failed (after max retries)
+pending → test-writing → red-verification → code-writing → green-verification → spec-review → adversarial-review → completed
+                ↑              |                   ↑              |                    |              |
+                └── (retry) ───┘                   └── (retry) ───┘                    ↓              ↓
+                                                                                    (revise)       failed (after max retries)
 ```
 
 ## Incremental Resume

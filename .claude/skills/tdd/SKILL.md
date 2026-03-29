@@ -75,7 +75,7 @@ The `execution.modelStrategy` key controls how agents are assigned to work units
 
 When `"auto"` is selected, use the least powerful model that can handle each role. More capable models are slower and more expensive — use them only when the task demands it.
 
-**Mechanical tasks** (isolated functions, clear spec, 1-2 files): use `haiku` for Test Writer and Code Writer, `sonnet` for reviewers. Most implementation tasks are mechanical when the spec-contract is well-written.
+**Mechanical tasks** (isolated functions, clear spec, 1-2 files): use `sonnet` for all agents.
 
 **Integration tasks** (multi-file coordination, pattern matching, cross-unit concerns): use `sonnet` for all agents.
 

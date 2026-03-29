@@ -1,0 +1,17 @@
+{
+  "eval_id": 1,
+  "eval_name": "simple-utility",
+  "prompt": "/tdd implement a string utility module with functions: capitalize(str), truncate(str, maxLen), and slugify(str)",
+  "assertions": [
+    {"text": "Detects or asks about the test framework before writing tests", "type": "behavioral"},
+    {"text": "Presents a work decomposition plan and asks for user confirmation", "type": "behavioral"},
+    {"text": "Test Writer creates test files BEFORE any implementation code", "type": "ordering"},
+    {"text": "Tests fail initially (RED phase verified with non-zero exit code check)", "type": "verification"},
+    {"text": "Code Writer receives test contents from disk, not Test Writer output (information barrier)", "type": "security"},
+    {"text": "Code Writer does NOT modify test files (checksum verification)", "type": "verification"},
+    {"text": "All tests pass after implementation (GREEN phase)", "type": "verification"},
+    {"text": "Adversarial review step is performed", "type": "behavioral"},
+    {"text": "A tdd-report.md or summary is generated", "type": "output"},
+    {"text": "No verification steps are skipped even for simple specs", "type": "completeness"}
+  ]
+}

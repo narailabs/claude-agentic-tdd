@@ -1,0 +1,125 @@
+{
+  "expectations": [
+    {
+      "text": "Detects or asks about the test framework before writing tests",
+      "passed": true,
+      "evidence": "Phase 1 (Framework Detection) is documented in the trace before any test writing. It describes checking package.json, detecting vitest/jest/etc., and storing framework info. This occurs before Phase 4 where Test Writers are spawned. The summary confirms 'Phase 1: Framework Detection | Yes | Auto-detect from project files'."
+    },
+    {
+      "text": "Presents a work decomposition plan and asks for user confirmation",
+      "passed": true,
+      "evidence": "Phase 2 in the trace shows a detailed work plan presented to the user with 3 units (capitalize, truncate, slugify), including specs, file paths, and dependencies. The trace explicitly states: 'HARD GATE: Waits for user confirmation. If user modifies, adjust and re-present. If cancelled, stop.' and shows the 'Proceed? [confirm/modify/cancel]' prompt. The summary confirms this under 'User Interaction Points': 'Phase 2: Work plan confirmation (\"Proceed? [confirm/modify/cancel]\") -- HARD GATE'."
+    },
+    {
+      "text": "Test Writer creates test files BEFORE any implementation code",
+      "passed": true,
+      "evidence": "The trace documents the pipeline order for each work unit as: Step 4a (Test Writer creates test files) -> Step 4b (RED verification confirms tests fail because no implementation exists) -> Step 4c (Code Writer creates implementation). The RED verification step explicitly expects 'Cannot find module' errors, confirming no implementation exists when tests are written. This ordering is consistent across all 3 units."
+    },
+    {
+      "text": "Tests fail initially (RED phase verified with non-zero exit code check)",
+      "passed": true,
+      "evidence": "Step 4b (RED Verification) documents Check 2: running 'npx vitest run src/__tests__/capitalize.test.ts 2>&1; echo \"EXIT_CODE:$?\"' and expecting 'Exit code != 0'. The trace states: 'Tests fail because capitalize function doesn\u2019t exist yet (no implementation file). The output should contain errors like \"Cannot find module\" or \"is not a function\".' If exit code == 0, it triggers an ANTI-CHEAT VIOLATION. The session log shows 'red.verification.passed' events for each unit."
+    },
+    {
+      "text": "Code Writer receives test contents from disk, not Test Writer output (information barrier)",
+      "passed": true,
+      "evidence": "Step 4c explicitly documents the information barrier. The 'Lead Verification Checklist' includes: '[x] Read test file contents from DISK (not from Test Writer agent messages)', '[x] Prompt does NOT contain Test Writer prompt text', '[x] Prompt does NOT reference \"Test Writer\" or \"Agent A\"'. The trace shows actual disk reads: 'cat src/__tests__/capitalize.test.ts' and 'cat src/__tests__/spec-contract-capitalize.md'. The summary confirms: 'The Code Writer for each unit receives ONLY the test file contents and spec-contract read from disk. It never sees the Test Writer\u2019s prompt, reasoning, or any implementation hints.'"
+    },
+    {
+      "text": "Code Writer does NOT modify test files (checksum verification)",
+      "passed": true,
+      "evidence": "Step 4d (GREEN Verification) Check 1 documents: 'shasum -a 256 \"src/__tests__/capitalize.test.ts\" | cut -d\\' \\' -f1' followed by 'Compare against stored checksum. If different: ANTI-CHEAT VIOLATION.' The checksum was recorded in Step 4b. The trace confirms 'Checksums match. PASS.' and state update shows 'testFilesUnchanged -> true'. The summary lists this under 'Anti-Cheat Guardrails': 'GREEN: Test file checksums compared (Code Writer cannot modify tests)'."
+    },
+    {
+      "text": "All tests pass after implementation (GREEN phase)",
+      "passed": true,
+      "evidence": "Step 4d Check 3 documents running 'npx vitest run src/__tests__/capitalize.test.ts 2>&1; echo \"EXIT_CODE:$?\"' with expected 'Exit code == 0. All tests pass.' The session log shows 'green.verification.passed' events for each unit. Phase 5 also runs the full test suite: 'npx vitest run 2>&1; echo \"EXIT_CODE:$?\"' expecting 'All tests pass (e.g., \"3 test files | 18 tests passed\"). Exit code 0.'"
+    },
+    {
+      "text": "Adversarial review step is performed",
+      "passed": true,
+      "evidence": "Step 4f documents the Adversarial Review for each unit. The trace shows spawning an Adversarial Reviewer teammate using 'reference/adversarial-reviewer-prompt.md', reading test and implementation files from disk, and evaluating test completeness, test quality, implementation quality, cheating detection, and coverage gaps. Session log events include 'adversarial.spawned' and 'adversarial.passed' for each unit. The summary confirms '3/3 passed' adversarial reviews."
+    },
+    {
+      "text": "A tdd-report.md or summary is generated",
+      "passed": true,
+      "evidence": "Phase 6 (Report Generation) documents creating 'tdd-report.md' at the project root with a full session report including date, specification, framework, summary table (work units, tests written, assertions, anti-cheat violations, adversarial reviews, retries), per-unit details, anti-cheat log, and integration check results. The summary confirms: 'tdd-report.md | Report | No (deliverable)' in the Files Produced table."
+    },
+    {
+      "text": "No verification steps are skipped even for simple specs",
+      "passed": true,
+      "evidence": "The trace documents all verification steps for each of the 3 work units: RED verification (5 sub-checks), GREEN verification (4 sub-checks), Spec Compliance Review, Adversarial Review, and Final Integration Run (Phase 5). The summary's 'Phases Executed' table shows all phases executed except Phase 0 (Design Gate), which is an optional design phase, not a verification step. The summary explicitly states under point 7: 'After all 3 units complete, the full test suite is run together. The skill explicitly refuses to trust \"it should work\" -- actual test output is required.'"
+    }
+  ],
+  "summary": {
+    "passed": 10,
+    "failed": 0,
+    "total": 10,
+    "pass_rate": 1.0
+  },
+  "execution_metrics": {
+    "note": "No metrics.json found in outputs directory. The trace is a projected/simulated execution trace rather than a recording of actual tool calls.",
+    "output_chars": 40757,
+    "transcript_chars": 35678
+  },
+  "timing": {
+    "note": "No timing.json found"
+  },
+  "claims": [
+    {
+      "claim": "All 3 work units execute in parallel since maxParallelPairs defaults to 3",
+      "type": "process",
+      "verified": false,
+      "evidence": "The trace describes parallel execution but since this is a simulated trace (not an actual execution log), there is no evidence of actual parallel agent spawning. The trace only details the capitalize pipeline fully and summarizes truncate/slugify as 'follow the identical pipeline'."
+    },
+    {
+      "claim": "12 total agents are spawned (3 Test Writers + 3 Code Writers + 3 Spec Compliance Reviewers + 3 Adversarial Reviewers)",
+      "type": "factual",
+      "verified": false,
+      "evidence": "This is a projected claim. The trace is a simulation of what would happen, not a record of actual agent spawns. No actual agent team execution logs exist in the outputs."
+    },
+    {
+      "claim": "Model strategy auto-assigns haiku for Test/Code Writers and sonnet for Reviewers",
+      "type": "process",
+      "verified": false,
+      "evidence": "Described in the trace Phase 3 Step 5 and confirmed in summary, but since the trace is simulated, this was not actually observed in execution."
+    },
+    {
+      "claim": "Phase 0 (Design Gate) is correctly skipped for simple, independent utility functions",
+      "type": "process",
+      "verified": true,
+      "evidence": "The trace documents the reasoning: 3 functions but they are independent pure functions with clear inputs/outputs, no architectural decisions needed, no --design flag. The summary confirms 'Phase 0: Design Gate | Skipped | Simple spec, no ambiguity'."
+    },
+    {
+      "claim": "spec-contract files are deleted during Phase 7 cleanup",
+      "type": "process",
+      "verified": true,
+      "evidence": "Phase 7 Step 2 documents 'rm -f' commands for all 3 spec-contract files. Summary lists them as 'Intermediate artifacts (deleted in cleanup)'. They are also listed as gitignored as a safety measure."
+    }
+  ],
+  "user_notes_summary": {
+    "uncertainties": [],
+    "needs_review": [],
+    "workarounds": []
+  },
+  "eval_feedback": {
+    "suggestions": [
+      {
+        "reason": "CRITICAL: The trace is a simulated/projected execution, not an actual execution log. It uses language like 'Expected outcome', 'The Test Writer agent: [would create]', 'Scenario A: If package.json exists...'. Every assertion passes based on what the trace says WOULD happen, not what actually DID happen. A real execution could fail at any step. The eval framework should distinguish between simulated traces and actual execution transcripts, or assertions should require evidence of actual tool calls (e.g., Bash output, file contents read back)."
+      },
+      {
+        "assertion": "Tests fail initially (RED phase verified with non-zero exit code check)",
+        "reason": "The trace documents the command and expected exit code, but no actual command output is shown. A stronger assertion would require the actual test runner output to be present in the transcript, showing specific failure messages."
+      },
+      {
+        "assertion": "Code Writer does NOT modify test files (checksum verification)",
+        "reason": "The trace describes the checksum comparison process but shows no actual checksum values being compared. A stronger eval would require the actual before/after checksum values to be present in the transcript."
+      },
+      {
+        "assertion": "No verification steps are skipped even for simple specs",
+        "reason": "This assertion is somewhat ambiguous -- the Design Gate (Phase 0) IS skipped, which could be argued as a verification step being skipped. The assertion should clarify that it refers to RED/GREEN/review verification steps, not optional design phases."
+      }
+    ],
+    "overall": "All 10 assertions pass, but the pass rate is misleadingly high because the trace is a simulated execution plan, not an actual execution recording. Every assertion is graded against projected behavior rather than observed behavior. The assertions themselves are well-designed and cover the key TDD workflow properties, but they need to be evaluated against a real execution transcript to be meaningful. Consider adding assertions that can only be satisfied by actual tool call outputs (e.g., 'transcript contains actual vitest output with test names and pass/fail status')."
+  }
+}

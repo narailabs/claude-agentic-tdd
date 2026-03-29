@@ -117,51 +117,6 @@ Store checksums in the state file under `redVerification.testFileChecksums`.
 
 ---
 
-## Coverage Mode RED Verification (Entry Point Mode 2)
-
-Standard RED verification requires tests to FAIL. In coverage mode, the implementation already exists, so well-written characterization tests PASS immediately. This is expected — not an anti-cheat violation.
-
-### Adapted Verification: Hide-and-Restore
-
-Replace standard RED checks 2-3 with this sequence:
-
-**Step 1: Hide the implementation**
-```bash
-mv "{impl_file_path}" "{impl_file_path}.tdd-hidden"
-```
-
-**Step 2: Run tests — they should fail with import/module errors**
-```bash
-{test_command} {test_file_path} 2>&1; echo "EXIT_CODE:$?"
-```
-
-If exit code == 0 (tests pass even without implementation) → the tests are tautological. They don't actually import or test the real code. Re-prompt the Test Writer: "Your tests pass even when the implementation file is removed. They must import and test the actual code."
-
-If exit code != 0 with import/module errors → GOOD. The tests genuinely depend on the implementation.
-
-**Step 3: Restore the implementation**
-```bash
-mv "{impl_file_path}.tdd-hidden" "{impl_file_path}"
-```
-
-**Step 4: Run tests — they should pass**
-```bash
-{test_command} {test_file_path} 2>&1; echo "EXIT_CODE:$?"
-```
-
-If exit code != 0 → characterization tests don't match existing behavior. The Test Writer mischaracterized the code. Re-prompt: "Your characterization tests fail against the existing implementation. They must describe what the code actually does, not what you think it should do."
-
-If exit code == 0 → characterization is accurate. Proceed to review (skip Code Writer if no changes needed).
-
-### Checks That Still Apply in Coverage Mode
-
-- Check 1 (Tests Exist) — still required
-- Check 4 (Assertion Density) — still required
-- Check 5 (Behavior-Over-Implementation) — still required
-- Record Checksums — still required
-
----
-
 ## GREEN Verification
 
 Run after the Code Writer completes.

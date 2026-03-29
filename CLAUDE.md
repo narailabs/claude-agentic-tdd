@@ -31,13 +31,33 @@ Agent teams must be enabled. Add to `.claude/settings.json`:
 /tdd add test coverage for src/utils/
 /tdd implement against src/__tests__/calculator.test.ts
 /tdd "build a REST API for todo items" --skip-failed
+/tdd "build a payment system" --design          # force design gate
+/tdd "simple utility function" --skip-design    # skip design gate
 ```
+
+### Flags
+
+| Flag | Description |
+|------|-------------|
+| `--skip-failed` | Skip work units that fail after max retries instead of escalating |
+| `--config <path>` | Path to a custom `.tdd.config.json` |
+| `--design` | Force the design gate (Phase 0) even for simple specs |
+| `--skip-design` | Skip the design gate entirely |
 
 ## Development
 
 This plugin is structured as:
-- `.claude/skills/tdd/SKILL.md` — main orchestration skill
+- `.claude/skills/tdd/SKILL.md` — main orchestration skill (Phases 0-7)
 - `.claude/skills/tdd/reference/` — supporting documentation
+  - `framework-detection.md` — auto-detect test frameworks (10+ languages)
+  - `state-management.md` — state file schema and incremental resume
+  - `anti-cheat.md` — RED/GREEN verification rules and anti-rationalization table
+  - `test-writer-prompt.md` — Test Writer agent template
+  - `code-writer-prompt.md` — Code Writer agent template (information barrier)
+  - `adversarial-reviewer-prompt.md` — adversarial reviewer template
+  - `spec-compliance-reviewer-prompt.md` — spec compliance reviewer template
+  - `testing-anti-patterns.md` — 5 common testing anti-patterns with gate functions
+  - `report-format.md` — report and session log schema
 - `.claude-plugin/plugin.json` — marketplace manifest
 - `skills/tdd/` — local dev mirror
 

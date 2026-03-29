@@ -1,0 +1,613 @@
+{
+  "metadata": {
+    "skill_name": "tdd",
+    "skill_path": "/home/user/claude-agentic-tdd/.claude/skills/tdd",
+    "executor_model": "claude-opus-4-6",
+    "analyzer_model": "claude-opus-4-6",
+    "timestamp": "2026-03-17T05:45:10.325787Z",
+    "evals_run": [
+      "simple-utility",
+      "auth-system",
+      "existing-test",
+      "coverage-mode",
+      "ambiguous-spec"
+    ],
+    "runs_per_configuration": 1
+  },
+  "runs": [
+    {
+      "eval_id": 1,
+      "eval_name": "simple-utility",
+      "configuration": "with_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 10,
+        "failed": 0,
+        "total": 10,
+        "time_seconds": 0,
+        "tokens": 0,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "Detects or asks about the test framework before writing tests",
+          "passed": true,
+          "evidence": "Phase 1 (Framework Detection) is documented in the trace before any test writing. It describes checking package.json, detecting vitest/jest/etc., and storing framework info. This occurs before Phase 4 where Test Writers are spawned. The summary confirms 'Phase 1: Framework Detection | Yes | Auto-detect from project files'."
+        },
+        {
+          "text": "Presents a work decomposition plan and asks for user confirmation",
+          "passed": true,
+          "evidence": "Phase 2 in the trace shows a detailed work plan presented to the user with 3 units (capitalize, truncate, slugify), including specs, file paths, and dependencies. The trace explicitly states: 'HARD GATE: Waits for user confirmation. If user modifies, adjust and re-present. If cancelled, stop.' and shows the 'Proceed? [confirm/modify/cancel]' prompt. The summary confirms this under 'User Interaction Points': 'Phase 2: Work plan confirmation (\"Proceed? [confirm/modify/cancel]\") -- HARD GATE'."
+        },
+        {
+          "text": "Test Writer creates test files BEFORE any implementation code",
+          "passed": true,
+          "evidence": "The trace documents the pipeline order for each work unit as: Step 4a (Test Writer creates test files) -> Step 4b (RED verification confirms tests fail because no implementation exists) -> Step 4c (Code Writer creates implementation). The RED verification step explicitly expects 'Cannot find module' errors, confirming no implementation exists when tests are written. This ordering is consistent across all 3 units."
+        },
+        {
+          "text": "Tests fail initially (RED phase verified with non-zero exit code check)",
+          "passed": true,
+          "evidence": "Step 4b (RED Verification) documents Check 2: running 'npx vitest run src/__tests__/capitalize.test.ts 2>&1; echo \"EXIT_CODE:$?\"' and expecting 'Exit code != 0'. The trace states: 'Tests fail because capitalize function doesn\u2019t exist yet (no implementation file). The output should contain errors like \"Cannot find module\" or \"is not a function\".' If exit code == 0, it triggers an ANTI-CHEAT VIOLATION. The session log shows 'red.verification.passed' events for each unit."
+        },
+        {
+          "text": "Code Writer receives test contents from disk, not Test Writer output (information barrier)",
+          "passed": true,
+          "evidence": "Step 4c explicitly documents the information barrier. The 'Lead Verification Checklist' includes: '[x] Read test file contents from DISK (not from Test Writer agent messages)', '[x] Prompt does NOT contain Test Writer prompt text', '[x] Prompt does NOT reference \"Test Writer\" or \"Agent A\"'. The trace shows actual disk reads: 'cat src/__tests__/capitalize.test.ts' and 'cat src/__tests__/spec-contract-capitalize.md'. The summary confirms: 'The Code Writer for each unit receives ONLY the test file contents and spec-contract read from disk. It never sees the Test Writer\u2019s prompt, reasoning, or any implementation hints.'"
+        },
+        {
+          "text": "Code Writer does NOT modify test files (checksum verification)",
+          "passed": true,
+          "evidence": "Step 4d (GREEN Verification) Check 1 documents: 'shasum -a 256 \"src/__tests__/capitalize.test.ts\" | cut -d\\' \\' -f1' followed by 'Compare against stored checksum. If different: ANTI-CHEAT VIOLATION.' The checksum was recorded in Step 4b. The trace confirms 'Checksums match. PASS.' and state update shows 'testFilesUnchanged -> true'. The summary lists this under 'Anti-Cheat Guardrails': 'GREEN: Test file checksums compared (Code Writer cannot modify tests)'."
+        },
+        {
+          "text": "All tests pass after implementation (GREEN phase)",
+          "passed": true,
+          "evidence": "Step 4d Check 3 documents running 'npx vitest run src/__tests__/capitalize.test.ts 2>&1; echo \"EXIT_CODE:$?\"' with expected 'Exit code == 0. All tests pass.' The session log shows 'green.verification.passed' events for each unit. Phase 5 also runs the full test suite: 'npx vitest run 2>&1; echo \"EXIT_CODE:$?\"' expecting 'All tests pass (e.g., \"3 test files | 18 tests passed\"). Exit code 0.'"
+        },
+        {
+          "text": "Adversarial review step is performed",
+          "passed": true,
+          "evidence": "Step 4f documents the Adversarial Review for each unit. The trace shows spawning an Adversarial Reviewer teammate using 'reference/adversarial-reviewer-prompt.md', reading test and implementation files from disk, and evaluating test completeness, test quality, implementation quality, cheating detection, and coverage gaps. Session log events include 'adversarial.spawned' and 'adversarial.passed' for each unit. The summary confirms '3/3 passed' adversarial reviews."
+        },
+        {
+          "text": "A tdd-report.md or summary is generated",
+          "passed": true,
+          "evidence": "Phase 6 (Report Generation) documents creating 'tdd-report.md' at the project root with a full session report including date, specification, framework, summary table (work units, tests written, assertions, anti-cheat violations, adversarial reviews, retries), per-unit details, anti-cheat log, and integration check results. The summary confirms: 'tdd-report.md | Report | No (deliverable)' in the Files Produced table."
+        },
+        {
+          "text": "No verification steps are skipped even for simple specs",
+          "passed": true,
+          "evidence": "The trace documents all verification steps for each of the 3 work units: RED verification (5 sub-checks), GREEN verification (4 sub-checks), Spec Compliance Review, Adversarial Review, and Final Integration Run (Phase 5). The summary's 'Phases Executed' table shows all phases executed except Phase 0 (Design Gate), which is an optional design phase, not a verification step. The summary explicitly states under point 7: 'After all 3 units complete, the full test suite is run together. The skill explicitly refuses to trust \"it should work\" -- actual test output is required.'"
+        }
+      ]
+    },
+    {
+      "eval_id": 1,
+      "eval_name": "simple-utility",
+      "configuration": "without_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 0.1,
+        "passed": 1,
+        "failed": 9,
+        "total": 10,
+        "time_seconds": 0,
+        "tokens": 0,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "Detects or asks about the test framework before writing tests",
+          "passed": false,
+          "evidence": "Transcript Step 2-3 shows Claude checks project context and picks a framework based on 'general heuristics or its own preference' but does not systematically detect or ask the user. The summary confirms: 'Test framework detection? Ad-hoc, picks whatever seems standard.' No user interaction about framework choice occurs."
+        },
+        {
+          "text": "Presents a work decomposition plan and asks for user confirmation",
+          "passed": false,
+          "evidence": "Transcript explicitly states under 'Does NOT Enforce a Design Gate': 'Default Claude does not pause to: Analyze spec complexity, Decompose into work units, Get user approval on the plan before writing code.' It 'jumps straight to implementation.' Summary confirms: 'No decomposition -- all three functions treated as a single blob rather than independent work units.'"
+        },
+        {
+          "text": "Test Writer creates test files BEFORE any implementation code",
+          "passed": false,
+          "evidence": "Transcript Step 4 is titled 'Write the Implementation FIRST' and states: 'This is the critical divergence from TDD. Default Claude Code writes the implementation first.' Step 5 says tests come 'AFTER (Maybe).' The summary table confirms: 'Write tests first? No -- implementation first, tests after (if at all).'"
+        },
+        {
+          "text": "Tests fail initially (RED phase verified with non-zero exit code check)",
+          "passed": false,
+          "evidence": "Transcript section 'Does NOT Perform RED/GREEN Verification' states: 'Default Claude skips all of this. Tests and implementation are written in one shot. There is no verification that the tests would have failed without the implementation.' No RED phase exists."
+        },
+        {
+          "text": "Code Writer receives test contents from disk, not Test Writer output (information barrier)",
+          "passed": false,
+          "evidence": "Transcript section 'Does NOT Use Agent Teams' states: 'Default Claude Code operates as a single agent. It does not: Spawn a separate \"Test Writer\" agent... Spawn a separate \"Code Writer\" agent... Everything happens in one context, so the test author has full knowledge of the implementation, defeating the purpose of independent test design.'"
+        },
+        {
+          "text": "Code Writer does NOT modify test files (checksum verification)",
+          "passed": false,
+          "evidence": "No agent teams are used, so there is no Code Writer agent and no checksum verification. The single agent has unrestricted access to all files. While the trace does not show test file modification, the absence of any enforcement mechanism means this assertion cannot be considered passed -- there is no verification step."
+        },
+        {
+          "text": "All tests pass after implementation (GREEN phase)",
+          "passed": true,
+          "evidence": "Transcript Step 6 states: 'Claude would run npx jest or equivalent and expect all tests to pass on the first run.' Step 7: 'Claude would report that the module is implemented and tests pass.' The summary confirms: 'Might write tests, and those tests would likely pass.' While there is no formal GREEN phase, the functional outcome of passing tests is expected."
+        },
+        {
+          "text": "Adversarial review step is performed",
+          "passed": false,
+          "evidence": "Transcript section 'Does NOT Do Adversarial Review' explicitly states: 'There is no adversarial reviewer that checks: Are the tests actually testing behavior or just mirroring implementation? Are there edge cases missing? Could the implementation pass all tests while being subtly wrong?'"
+        },
+        {
+          "text": "A tdd-report.md or summary is generated",
+          "passed": false,
+          "evidence": "Transcript section 'Does NOT Produce a Structured Report' states: 'Default Claude gives a conversational summary. It does not produce a structured report with: Per-work-unit pass/fail status, RED/GREEN phase logs, Coverage metrics, Anti-pattern scan results.' No tdd-report.md or equivalent structured output is generated."
+        },
+        {
+          "text": "No verification steps are skipped even for simple specs",
+          "passed": false,
+          "evidence": "Nearly all verification steps are skipped: no RED phase, no GREEN phase verification, no adversarial review, no anti-pattern checks, no checksum verification. The transcript documents extensive skipping under 'What Default Claude Code Does NOT Do' (9 categories of missing verification)."
+        }
+      ]
+    },
+    {
+      "eval_id": 2,
+      "eval_name": "auth-system",
+      "configuration": "with_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 8,
+        "failed": 0,
+        "total": 8,
+        "time_seconds": 0,
+        "tokens": 0,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "Triggers the design gate (Phase 0) due to complexity",
+          "passed": true,
+          "evidence": "Trace Phase 0 section explicitly states 'Result: Design gate TRIGGERS. Multiple conditions are met.' with three conditions satisfied: 3+ distinct features, external integrations, and ambiguous data flow. Summary confirms: 'Triggered because: 3 distinct features (registration, login, password reset).'"
+        },
+        {
+          "text": "Produces a design summary with components, data flow, key decisions",
+          "passed": true,
+          "evidence": "Trace Step 0c contains a full design summary with sections: 'Components' (4 listed: UserRegistration, UserLogin, PasswordReset, UserStore), 'Data Flow' (registration->login->reset flows described), 'Key Decisions' (5 decisions including stateless JWT, pluggable notification, account lockout policy, bcrypt), and 'Out of Scope' section."
+        },
+        {
+          "text": "Decomposes into at least 3 work units",
+          "passed": true,
+          "evidence": "Trace Phase 2 explicitly produces 3 work units: 'Unit 1: user-registration', 'Unit 2: user-login', 'Unit 3: password-reset'. Summary confirms: 'Work units: 3'."
+        },
+        {
+          "text": "Identifies dependencies between units (login depends on registration)",
+          "passed": true,
+          "evidence": "Trace Phase 2 Dependency Analysis section states: 'UserLogin depends on user-registration -- it needs to look up users by email and verify hashed passwords.' and 'PasswordReset depends on user-registration'. Work unit definitions include explicit 'Dependencies: [user-registration]' for units 2 and 3, and 'Dependencies: none' for unit 1."
+        },
+        {
+          "text": "Respects dependency order in execution",
+          "passed": true,
+          "evidence": "Trace Phase 4 states: 'Execution plan: 1. Run user-registration first (alone). 2. Once user-registration completes, run user-login and password-reset in parallel.' The execution timeline shows Unit 1 completing fully before Units 2 and 3 begin. Summary confirms: 'Level 0: user-registration runs first (no dependencies), Level 1: user-login and password-reset run in parallel.'"
+        },
+        {
+          "text": "Each work unit goes through full RED\u2192GREEN\u2192review cycle",
+          "passed": true,
+          "evidence": "Trace documents all 6 sub-steps for Unit 1 in detail (Steps 4a-4f: Test Writer, RED verification, Code Writer, GREEN verification, Spec Compliance Review, Adversarial Review). Units 2 and 3 state 'Steps 4b-4f: Same Pipeline as Unit 1' with RED, GREEN, spec compliance, and adversarial review each mentioned. Summary's 'Per-Unit Pipeline' section confirms all 6 sub-steps applied to each unit."
+        },
+        {
+          "text": "Runs a final integration test across all units",
+          "passed": true,
+          "evidence": "Trace Phase 5 ('Final Review -- Integration Check') describes: Step 5a runs 'npx vitest run' for all 3 test files together, Step 5b verifies pristine output, Step 5c performs holistic code review, Step 5d checks cross-unit integration (registration->login flow, registration->reset flow, lockout->reset edge case), and Step 5e enforces anti-rationalization."
+        },
+        {
+          "text": "Report shows all work units with individual phase statuses",
+          "passed": true,
+          "evidence": "Trace Phase 6 shows the report template with all 3 work units (User Registration, User Login, Password Reset) each having individual phase status tables with columns: Phase, Status, Attempts, Notes. Each phase (Test Writer, RED Verification, Code Writer, GREEN Verification, Spec Compliance, Adversarial Review) has its own row with status. Summary section shows '3/3 units completed'."
+        }
+      ]
+    },
+    {
+      "eval_id": 2,
+      "eval_name": "auth-system",
+      "configuration": "without_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 0.0,
+        "passed": 0,
+        "failed": 8,
+        "total": 8,
+        "time_seconds": 0,
+        "tokens": 0,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "Triggers the design gate (Phase 0) due to complexity",
+          "passed": false,
+          "evidence": "Trace explicitly states under 'No Design Gate': 'Does not ask the user to confirm architecture before coding', 'Does not produce a design document', 'Does not consider alternative approaches'. Section heading reads 'No Design Questions Asked -- Jumps Straight to Coding'."
+        },
+        {
+          "text": "Produces a design summary with components, data flow, key decisions",
+          "passed": false,
+          "evidence": "Trace states: 'No architecture design document or review gate' (Step 1). Summary confirms: 'Architecture decisions are implicit and undocumented. The user has no opportunity to steer the design before code is written.'"
+        },
+        {
+          "text": "Decomposes into at least 3 work units",
+          "passed": false,
+          "evidence": "Trace states under 'No Formal Decomposition with Dependency Analysis': 'Does not break the system into discrete work units'. The implementation is built linearly in one pass (scaffolding -> models -> routes -> tests) without formal work unit decomposition."
+        },
+        {
+          "text": "Identifies dependencies between units (login depends on registration)",
+          "passed": false,
+          "evidence": "Trace explicitly states: 'Does not analyze dependencies between components', 'Does not create a dependency graph'. Summary confirms: 'There is no dependency graph, no identification of parallelizable units'."
+        },
+        {
+          "text": "Respects dependency order in execution",
+          "passed": false,
+          "evidence": "Without formal work units or dependency analysis, there is no dependency ordering to respect. The trace shows a linear, intuitive build order (registration then login then reset) but this is incidental, not driven by explicit dependency resolution. The trace states: 'Work order is linear and intuitive rather than optimized'."
+        },
+        {
+          "text": "Each work unit goes through full RED\u2192GREEN\u2192review cycle",
+          "passed": false,
+          "evidence": "Trace is unambiguous: 'Tests Are Written AFTER Code (Code-First, Not Test-First)', 'No RED phase: tests are never seen failing before the implementation exists', 'No RED/GREEN/REFACTOR cycle enforcement', 'No anti-cheat verification'. There are no work units and no RED->GREEN cycle."
+        },
+        {
+          "text": "Runs a final integration test across all units",
+          "passed": false,
+          "evidence": "Trace shows only 'npx jest' and 'npx tsc --noEmit' as final verification (Step 5). There is no dedicated integration test step. The tests written in Step 4g are unit-level tests for each endpoint. No cross-unit integration test (e.g., register then login then reset) is mentioned."
+        },
+        {
+          "text": "Report shows all work units with individual phase statuses",
+          "passed": false,
+          "evidence": "Trace explicitly states under 'No Structured Reporting': 'Final output is conversational, not structured', 'No work unit status table', 'No coverage metrics summary', 'No spec compliance matrix', 'No session log for future reference'."
+        }
+      ]
+    },
+    {
+      "eval_id": 3,
+      "eval_name": "existing-test",
+      "configuration": "with_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 6,
+        "failed": 0,
+        "total": 6,
+        "time_seconds": 0,
+        "tokens": 0,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "Detects entry point mode 3 (user-provided test)",
+          "passed": true,
+          "evidence": "Trace Step 1 explicitly states: 'The skill parses $ARGUMENTS and matches the phrase \"implement against\" combined with a test file path' and 'Decision: Entry point mode is user-provided-test. This is recorded in the state file as \"entryPoint\": \"user-provided-test\".' This matches the SKILL.md rule: '3. User-provided test: User says \"implement against this test...\" or provides a failing test file -- skip Test Writer, go directly to Code Writer'."
+        },
+        {
+          "text": "Skips Test Writer phase entirely",
+          "passed": true,
+          "evidence": "Trace Step 8 states: 'SKIPPED. The user provided the test file. No Test Writer agent is spawned.' The state records 'testWriter.status: \"completed\"' with 'attempts: 0'. The summary confirms 'Phase 4a (Test Writer): Skipped entirely. The user's test file replaces the Test Writer's output. No Test Writer agent is spawned.' The agents table at the end lists Test Writer as 'NO' for spawning."
+        },
+        {
+          "text": "Reads existing test file from disk and passes to Code Writer",
+          "passed": true,
+          "evidence": "Trace Step 10 (Phase 4c) shows the Code Writer prompt template includes '[contents of src/__tests__/calculator.test.ts, read from disk]' and the lead verification checklist confirms: '[x] Prompt contains test file contents read from DISK (not from any agent output)'. The information barrier section in both trace and summary confirms the Code Writer receives 'Test file contents (read from disk)'."
+        },
+        {
+          "text": "Still performs GREEN verification (checksum + all tests pass)",
+          "passed": true,
+          "evidence": "Trace Step 11 (Phase 4d) documents all 4 GREEN verification checks: (1) checksum comparison via 'shasum -a 256' against the RED-phase stored checksum, (2) skip/focus marker scan via grep, (3) test execution via 'npx jest' requiring exit code 0, (4) hardcoded return heuristic. The summary confirms: 'Phase 4d (GREEN Verification): Runs with all 4 checks (checksum comparison, skip marker scan, test execution, hardcoded return heuristic).' The dedicated checksum flow diagram in the trace further confirms the SHA-256 comparison mechanism."
+        },
+        {
+          "text": "Still performs adversarial review",
+          "passed": true,
+          "evidence": "Trace Step 13 (Phase 4f) documents the Adversarial Reviewer being spawned as a teammate with spec-contract, test file, implementation file, and scoring rubric. It evaluates 5 dimensions (Test Completeness, Test Quality, Implementation Quality, Cheating Detection, Coverage Gaps) plus the 5 anti-patterns. The agents table confirms 'Adversarial Reviewer: YES'. The summary confirms: 'Phase 4f (Adversarial Review): Runs normally. Reviews both the user's tests and the generated implementation.'"
+        },
+        {
+          "text": "Does NOT rewrite or replace the user's test file",
+          "passed": true,
+          "evidence": "Multiple safeguards documented: (1) Trace Step 9 records SHA-256 checksum of the test file during RED verification, (2) Trace Step 11 recomputes and compares the checksum during GREEN verification -- 'If the Code Writer modified the user's test file, it is an anti-cheat violation', (3) Code Writer rules include 'DO NOT MODIFY TEST FILES', (4) The checksum flow diagram shows MISMATCH triggers 'ANTI-CHEAT VIOLATION, discard Code Writer changes, re-prompt'. The summary states the mechanism 'protects the user's tests with the same rigor as agent-written tests'."
+        }
+      ]
+    },
+    {
+      "eval_id": 3,
+      "eval_name": "existing-test",
+      "configuration": "without_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 0.17,
+        "passed": 1,
+        "failed": 5,
+        "total": 6,
+        "time_seconds": 0,
+        "tokens": 0,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "Detects entry point mode 3 (user-provided test)",
+          "passed": false,
+          "evidence": "The transcript shows Claude Code treats '/tdd implement against src/__tests__/calculator.test.ts' as a plain natural-language instruction. It infers the intent ('make these tests pass') but has no concept of 'entry point modes.' Step 1 states: 'Claude Code does not recognize /tdd as a registered skill command. It treats the entire string as a natural-language instruction.' There is no mode detection, just general intent parsing."
+        },
+        {
+          "text": "Skips Test Writer phase entirely",
+          "passed": true,
+          "evidence": "The transcript confirms default Claude Code does not write new tests. It reads the existing test file (Step 2) and proceeds directly to implementation (Step 4). Since default Claude Code has no TDD phases at all, it trivially skips Test Writer. However, this is vacuously true \u2014 there is no Test Writer phase to skip because there are no phases at all."
+        },
+        {
+          "text": "Reads existing test file from disk and passes to Code Writer",
+          "passed": false,
+          "evidence": "The transcript confirms the test file is read (Step 2: 'Read: src/__tests__/calculator.test.ts'). However, there is no 'Code Writer' agent \u2014 default Claude Code is a single agent that reads the file and writes the implementation itself. The assertion implies a structured handoff between agents, which does not occur. The test file is read but not 'passed to Code Writer' as a distinct step."
+        },
+        {
+          "text": "Still performs GREEN verification (checksum + all tests pass)",
+          "passed": false,
+          "evidence": "The transcript states tests are 'LIKELY (not guaranteed)' to be run (Step 5), but explicitly notes there is no checksum verification. The Critical Gap Analysis section states: 'No checksum verification' and 'There is no formal protocol enforcing this.' The summary table confirms 'Protect test files from modification: NO.' GREEN verification in the TDD sense (checksum of test file + enforced test pass) is absent."
+        },
+        {
+          "text": "Still performs adversarial review",
+          "passed": false,
+          "evidence": "The transcript explicitly states in Critical Gap Analysis #4: 'Adversarial Review: ABSENT. No independent review of test quality or implementation quality. Claude Code is both the implementer and the (implicit) reviewer, creating a conflict of interest.' The summary table confirms 'Independent adversarial review: NO.'"
+        },
+        {
+          "text": "Does NOT rewrite or replace the user's test file",
+          "passed": false,
+          "evidence": "The transcript explicitly identifies test file modification as the most dangerous gap. Critical Gap Analysis #1 states: 'Default Claude Code has NO guardrail against modifying the test file. If the implementation is difficult, Claude Code might: \"Fix\" a test that it thinks is wrong, Adjust assertions to match its implementation, Add .skip to problematic tests, Change import paths in the test file.' Risk level is rated MEDIUM-HIGH. Since this is a predicted trace (no actual execution), there is no positive evidence the test file would be preserved. The absence of any protection mechanism means this expectation cannot be verified as passing."
+        }
+      ]
+    },
+    {
+      "eval_id": 4,
+      "eval_name": "coverage-mode",
+      "configuration": "with_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 0.83,
+        "passed": 5,
+        "failed": 1,
+        "total": 6,
+        "time_seconds": 0,
+        "tokens": 0,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "Detects entry point mode 2 (existing codebase)",
+          "passed": true,
+          "evidence": "Trace Step 3 explicitly shows: 'The phrase \"add test coverage for src/utils/\" directly matches Mode 2. The skill sets: entryPoint = \"existing-codebase\"'. The decision logic table shows Mode 2 matched with 'YES' while Modes 1 and 3 did not match."
+        },
+        {
+          "text": "Reads and analyzes existing source files before writing tests",
+          "passed": true,
+          "evidence": "Trace Step 7 (Phase 2 - Work Decomposition) shows: 'The orchestrator reads the src/utils/ directory: ls src/utils/' and then for each file: 'The orchestrator reads src/utils/stringHelpers.ts, analyzes the exported functions, their signatures, their behavior, and produces a behavioral spec-contract.' Step 9a confirms the spec-contract derived from reading existing code is passed to the Test Writer, with example showing extracted function signatures and behavior descriptions."
+        },
+        {
+          "text": "Skips design gate because --skip-design flag was passed",
+          "passed": true,
+          "evidence": "Trace Step 5 states: 'The --skip-design flag was parsed in Step 1. The skill checks: \"Skip when: ... User passes --skip-design\"' and 'Phase 0 is entirely skipped. No clarifying questions, no design summary, no user approval gate. designSummary is set to null in the state file.'"
+        },
+        {
+          "text": "Generates tests that characterize existing behavior",
+          "passed": true,
+          "evidence": "Trace Step 9a describes the Test Writer receiving a characterization spec derived from existing code (e.g., 'capitalize: Returns input string with first character uppercased...') and writing tests against it. The summary confirms: 'The Test Writer then receives this spec-contract and writes tests as if the code doesn't exist -- it describes behavior through imports and assertions. The key quality metric is whether the tests would catch regressions if someone modified the existing code.' The trace also notes that spec-contracts are 'reverse-engineered from existing code, not forward-designed from requirements.'"
+        },
+        {
+          "text": "Still enforces RED verification for new edge case tests",
+          "passed": false,
+          "evidence": "The trace identifies RED verification as fundamentally incompatible with coverage mode as currently specified. Step 9b states: 'As literally written, this would trigger an anti-cheat violation and an infinite retry loop -- the tests will always pass because the code exists.' The trace proposes a 'remove-and-restore' adaptation strategy but explicitly notes: 'The SKILL.md does not explicitly document this adaptation, which is a gap in the specification.' The trace describes what SHOULD happen (Option B or C) but acknowledges the skill text does not define how RED verification is enforced in Mode 2. The trace shows adaptation is needed but not that it is actually enforced -- it documents a gap rather than demonstrating enforcement."
+        },
+        {
+          "text": "Produces a report showing coverage additions",
+          "passed": true,
+          "evidence": "Trace Step 12 (Phase 6 - Report Generation) shows generation of tdd-report.md with a detailed template including: entry point marked as 'existing-codebase', work unit counts (4/4), tests written (24), assertions (48), anti-cheat violations (0), adversarial reviews (4/4), and retries (1). The report also includes per-unit details. Session log (tdd-session.jsonl) is also generated."
+        }
+      ]
+    },
+    {
+      "eval_id": 4,
+      "eval_name": "coverage-mode",
+      "configuration": "without_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 0.17,
+        "passed": 1,
+        "failed": 5,
+        "total": 6,
+        "time_seconds": 0,
+        "tokens": 0,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "Detects entry point mode 2 (existing codebase)",
+          "passed": false,
+          "evidence": "Transcript Step 1 states: 'Default Claude Code does not recognize /tdd as a registered skill command. It treats the entire input as a natural language request.' There is no formal entry point mode detection. Claude simply interprets the request as 'write tests for existing code' without any structured mode classification."
+        },
+        {
+          "text": "Reads and analyzes existing source files before writing tests",
+          "passed": true,
+          "evidence": "Transcript Step 2 shows Claude reading source files (Read calls for stringHelpers.ts, dateUtils.ts, validators.ts, etc.) and checking test infrastructure (Glob for test files, Read package.json) before writing any tests in Step 3. However, the transcript notes this analysis is 'reasonable but shallow -- it is reconnaissance, not structured characterization.'"
+        },
+        {
+          "text": "Skips design gate because --skip-design flag was passed",
+          "passed": false,
+          "evidence": "Transcript Step 1 states: 'The --skip-design flag is ignored or interpreted loosely as \"don't overthink the architecture, just write tests.\"' There is no design gate concept in default Claude Code, so the flag cannot meaningfully skip it. The absence of a design gate is incidental, not a response to the flag."
+        },
+        {
+          "text": "Generates tests that characterize existing behavior",
+          "passed": false,
+          "evidence": "Transcript 'Problem 10: No Characterization Test Methodology' states: 'Default Claude does not follow this methodology. It writes tests that happen to pass against the current implementation, but there is no verification that the tests are actually characterizing meaningful behavior.' Summary confirms: 'Default Claude skips step 2 entirely. It writes tests that happen to pass, but there is no verification that they would catch meaningful regressions. The tests are confirmation tests, not characterization tests.'"
+        },
+        {
+          "text": "Still enforces RED verification for new edge case tests",
+          "passed": false,
+          "evidence": "Transcript 'Problem 2: No RED Phase Verification' states: 'Default Claude never verifies that tests fail before implementation exists. Since the implementation already exists (coverage mode), this means Claude never verifies that the tests would catch a regression.' The behavior comparison table confirms: RED verification is 'None' for default Claude Code."
+        },
+        {
+          "text": "Produces a report showing coverage additions",
+          "passed": false,
+          "evidence": "Transcript Step 5 states: 'Claude produces an informal summary... No structured report. No metrics on assertion density. No anti-cheat verification.' The outputs directory contains only trace.md and summary.md (meta-documents about the baseline behavior), no actual coverage report or structured output."
+        }
+      ]
+    },
+    {
+      "eval_id": 5,
+      "eval_name": "ambiguous-spec",
+      "configuration": "with_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 6,
+        "failed": 0,
+        "total": 6,
+        "time_seconds": 0,
+        "tokens": 0,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "Triggers design gate (Phase 0) due to ambiguity",
+          "passed": true,
+          "evidence": "Trace Step 3 shows Phase 0 triggers on all three automatic conditions: 3+ features (payments, credit cards, refunds), external integrations (payment gateways), and ambiguous spec ('idk the details yet', 'maybe?'). The trace states: 'Result: Phase 0 triggers on ALL THREE automatic conditions. Even one would be sufficient.'"
+        },
+        {
+          "text": "Asks clarifying questions \u2014 does NOT assume specific technologies",
+          "passed": true,
+          "evidence": "Trace Step 4a shows the skill asks open-ended questions without assuming technologies. Question 1 asks 'What types of payment operations do you need?' (doesn't assume). Question 2 asks 'Should this integrate with a real payment gateway like Stripe or Braintree, or do you want an in-memory/mock payment processor?' -- presents options rather than assuming Stripe. Question 3 asks about error handling behavior. However, the subsequent design proposals DO assume Stripe, but only AFTER the hypothetical user said 'let's do Stripe' in a simulated answer."
+        },
+        {
+          "text": "Asks questions one at a time, not a dump of 10 questions",
+          "passed": true,
+          "evidence": "Trace Step 4a explicitly states: 'The skill STOPS and WAITS for the user's answer. It does not ask all questions at once.' Each of the three questions is followed by 'The skill STOPS and WAITS again.' The trace also notes: 'The key constraint is \"one at a time\" -- this prevents overwhelming the user and ensures each answer informs the next question.'"
+        },
+        {
+          "text": "Does NOT start writing code or tests before clarifying the spec",
+          "passed": true,
+          "evidence": "The trace shows strict ordering: Phase 0 (design gate) completes with user approval in Step 4d BEFORE Phase 1 (framework detection) in Step 5 and Phase 2 (decomposition) in Step 6. Step 4d states: 'HARD GATE: The skill CANNOT proceed to Phase 2 (decomposition) until the user explicitly confirms.' No code or test writing occurs until Phase 4 (Step 7), which is after all clarification and design approval."
+        },
+        {
+          "text": "Proposes design approaches with trade-offs",
+          "passed": true,
+          "evidence": "Trace Step 4b presents three concrete options: (A) Thin wrapper around Stripe SDK, (B) Payment gateway abstraction layer, (C) Repository/service pattern with Stripe adapter. Each option includes explicit Pros and Cons. For example, Option A lists 'Cons: Tightly coupled to Stripe, hard to swap providers later, testing requires Stripe test keys or heavy mocking.'"
+        },
+        {
+          "text": "Waits for user approval before decomposing into work units",
+          "passed": true,
+          "evidence": "Trace Step 4d shows: 'The skill presents: Proceed with this design? [confirm/modify/cancel]' and 'HARD GATE: The skill CANNOT proceed to Phase 2 (decomposition) until the user explicitly confirms.' Step 6 (Phase 2 decomposition) only occurs after design approval, and itself ends with another 'Proceed? [confirm/modify/cancel]' gate."
+        }
+      ]
+    },
+    {
+      "eval_id": 5,
+      "eval_name": "ambiguous-spec",
+      "configuration": "without_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 0.0,
+        "passed": 0,
+        "failed": 6,
+        "total": 6,
+        "time_seconds": 0,
+        "tokens": 0,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "Triggers design gate (Phase 0) due to ambiguity",
+          "passed": false,
+          "evidence": "Trace Step 1 states: 'Default Claude Code would likely ask zero or very few clarifying questions.' Section 'Key Behavioral Observations' #1 explicitly says: 'Default Claude Code does not pause to propose a design document, architecture options, or request approval before building. It jumps from understanding to implementation.' No design gate is triggered."
+        },
+        {
+          "text": "Asks clarifying questions \u2014 does NOT assume specific technologies",
+          "passed": false,
+          "evidence": "Trace Step 1: 'Default Claude Code would likely ask zero or very few clarifying questions.' Step 3 shows it would immediately begin coding with self-chosen technology (TypeScript/Node.js, Stripe). Key Observation #2: 'The agent would silently decide: Language/framework (likely TypeScript + Node.js), Architecture, Payment gateway (likely Stripe or an in-memory mock)...' Summary confirms: 'Silent assumptions span every dimension: language choice, framework, payment gateway, API design, data model, refund policy, error handling, and scope.'"
+        },
+        {
+          "text": "Asks questions one at a time, not a dump of 10 questions",
+          "passed": false,
+          "evidence": "The baseline asks no clarifying questions at all. Trace Step 1: 'Default Claude Code would likely ask zero or very few clarifying questions. The typical behavior pattern is to acknowledge the vagueness briefly and then immediately start making assumptions and building.' Since no questions are asked, the 'one at a time' format is moot \u2014 the expectation fails because no questions are asked."
+        },
+        {
+          "text": "Does NOT start writing code or tests before clarifying the spec",
+          "passed": false,
+          "evidence": "Trace Step 3: 'Claude Code would begin producing code directly' immediately after a minimal scan, with no clarification step. The trace shows project scaffolding, type definitions, service implementation, and API routes all created without any spec clarification. Summary: 'Default Claude Code would start coding immediately with self-made assumptions.'"
+        },
+        {
+          "text": "Proposes design approaches with trade-offs",
+          "passed": false,
+          "evidence": "Key Behavioral Observation #1: 'Default Claude Code does not pause to propose a design document, architecture options, or request approval before building.' No trade-offs are presented. Summary: 'There would be no architecture document, no options presented, no approval checkpoint. The user would see finished code, not a plan.'"
+        },
+        {
+          "text": "Waits for user approval before decomposing into work units",
+          "passed": false,
+          "evidence": "Key Behavioral Observation #4: 'The entire payment system would be built in one pass rather than decomposed into independent, testable work units.' There is no decomposition step at all, let alone one gated on user approval. Key Observation #5: 'If something is ambiguous mid-implementation, Claude Code would pick an answer and keep going rather than asking the user.'"
+        }
+      ]
+    }
+  ],
+  "run_summary": {
+    "with_skill": {
+      "pass_rate": {
+        "mean": 0.966,
+        "stddev": 0.068,
+        "min": 0.83,
+        "max": 1.0
+      },
+      "time_seconds": {
+        "mean": 0,
+        "stddev": 0,
+        "min": 0,
+        "max": 0
+      },
+      "tokens": {
+        "mean": 0,
+        "stddev": 0,
+        "min": 0,
+        "max": 0
+      }
+    },
+    "without_skill": {
+      "pass_rate": {
+        "mean": 0.088,
+        "stddev": 0.076,
+        "min": 0.0,
+        "max": 0.17
+      },
+      "time_seconds": {
+        "mean": 0,
+        "stddev": 0,
+        "min": 0,
+        "max": 0
+      },
+      "tokens": {
+        "mean": 0,
+        "stddev": 0,
+        "min": 0,
+        "max": 0
+      }
+    },
+    "delta": {
+      "pass_rate": "+0.878",
+      "time_seconds": "N/A",
+      "tokens": "N/A"
+    }
+  },
+  "notes": [
+    "With-skill mean pass rate: 0.966 vs without-skill: 0.088 (delta: +0.878)",
+    "Coverage mode (eval 4) is the only eval where with-skill doesn't get 100% \u2014 RED verification is incompatible with existing code",
+    "Without-skill baseline consistently fails on TDD-specific behaviors (information barrier, checksum verification, adversarial review)",
+    "The design gate (Phase 0) correctly triggers for complex/ambiguous specs and correctly skips for simple ones",
+    "Entry point mode 3 (existing test) correctly skips Test Writer while maintaining all verification steps"
+  ]
+}

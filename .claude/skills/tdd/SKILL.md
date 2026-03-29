@@ -32,6 +32,7 @@ Parse `$ARGUMENTS` for:
 - `--config <path>` — path to a custom `.tdd.config.json`
 - `--design` — force the design gate (Phase 0) even for simple specs
 - `--skip-design` — skip the design gate entirely
+- `--effort <level>` — set reasoning effort for all agents: `medium`, `high` (default), or `max` (opus-only)
 
 If no arguments provided, ask the user what they want to implement.
 
@@ -58,22 +59,26 @@ Load configuration in priority order:
    execution.parallelMode: "auto"
    execution.skipFailedAfterRetries: false
    execution.modelStrategy: "auto"
+   execution.effortLevel: "high"
    reporting.generateReport: true
    reporting.generateSessionLog: true
    ```
 
-### Model Cost Optimization
+### Model and Effort Configuration
 
-The `execution.modelStrategy` key controls how agents are assigned to work units:
+Each agent is assigned a **model** and a **reasoning effort** level. These are configured together because they interact — more capable models benefit from higher effort, and higher effort on a less capable model can sometimes match a more capable model at lower effort.
+
+#### Model Strategy
+
+The `execution.modelStrategy` key controls model assignment per work unit:
 
 | Strategy | Behavior |
 |----------|----------|
-| `"auto"` (default) | Assess each work unit's complexity and assign models accordingly |
-| `"standard"` | Use the default model for all agents |
-| `"fast"` | Use the cheapest capable model for all agents |
-| `"capable"` | Use the most capable model for all agents |
+| `"auto"` (default) | Assess complexity and assign models accordingly |
+| `"standard"` | Use `sonnet` for all agents |
+| `"capable"` | Use `opus` for all agents |
 
-When `"auto"` is selected, use the least powerful model that can handle each role. More capable models are slower and more expensive — use them only when the task demands it.
+When `"auto"` is selected:
 
 **Mechanical tasks** (isolated functions, clear spec, 1-2 files): use `sonnet` for all agents.
 
@@ -81,12 +86,30 @@ When `"auto"` is selected, use the least powerful model that can handle each rol
 
 **Architecture and judgment tasks** (ambiguous spec, many dependencies, design-sensitive): use `opus` for Test Writer and reviewers, `sonnet` for Code Writer.
 
-Complexity signals:
-- Touches 1-2 files with a complete spec → cheap model
-- Touches multiple files with integration concerns → standard model
-- Requires design judgment or broad codebase understanding → most capable model
+#### Reasoning Effort
 
-The model assignment is recorded in the state file per work unit and displayed in the report.
+The `execution.effortLevel` key controls how much reasoning each agent applies. Higher effort means deeper thinking but slower, more expensive responses.
+
+| Level | Behavior | Use When |
+|-------|----------|----------|
+| `"high"` (default) | Deep reasoning for all agents | Most TDD work — tests and implementations benefit from careful thought |
+| `"medium"` | Balanced speed/reasoning | Large batch runs where speed matters more than nuance |
+| `"max"` | Maximum reasoning, no token constraint | Critical code, complex architecture. **Opus only** — if assigned to sonnet agents, falls back to `high`. |
+
+The default is `"high"` because TDD benefits from careful reasoning — writing good behavioral tests and clean implementations is not a mechanical task.
+
+To override per session, pass the `--effort` flag:
+```
+/tdd "build auth system" --effort max
+```
+
+When `--effort max` is passed:
+- Agents assigned to `opus` run at `max` effort
+- Agents assigned to `sonnet` run at `high` effort (max is opus-only)
+
+When spawning each agent, set the `effort` field in the subagent prompt or use the session-level effort configuration. The effort level is recorded in the state file per work unit and displayed in the report.
+
+The model and effort assignment are recorded in the state file per work unit and displayed in the report.
 
 When loading `.tdd.config.json`, flatten nested keys. Merged config is stored in the state file and passed to all teammates.
 

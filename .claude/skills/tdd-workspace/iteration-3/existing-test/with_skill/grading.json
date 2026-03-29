@@ -1,0 +1,57 @@
+{
+  "expectations": [
+    {
+      "text": "Detects that the user provided an existing test file (entry point mode 3)",
+      "passed": true,
+      "evidence": "Step 2: 'The phrase \"implement against\" combined with a test file path matches Mode 3.' The trace explicitly states: 'Result: entryPoint = \"user-provided-test\"'. Lines 39-46."
+    },
+    {
+      "text": "Skips the Test Writer phase -- does NOT rewrite or replace the user's test file",
+      "passed": true,
+      "evidence": "Step 3b explicitly states: 'Test Writer -- SKIPPED. No Test Writer agent spawned. The file src/__tests__/calculator.test.ts exists on disk.' The Mode 3 Phase Execution summary table confirms: 'Step 4a: Test Writer -- SKIPPED -- Mode 3 explicit skip (SKILL.md line 114)'. Lines 61-63 and 611. No Test Writer is ever spawned in the entire trace."
+    },
+    {
+      "text": "Reads the existing test file from disk and passes contents to the Code Writer",
+      "passed": true,
+      "evidence": "Step 9 states: 'The orchestrator reads the test file FROM DISK (not from any agent output -- the information barrier).' The Code Writer prompt includes '{test_file_contents_verbatim}: (contents of src/__tests__/calculator.test.ts read from disk)'. The Information Barrier Checklist explicitly checks: '[x] Test file contents read from DISK'. Lines 159-198."
+    },
+    {
+      "text": "Still performs GREEN verification (checksum check, all tests pass)",
+      "passed": true,
+      "evidence": "Step 10 GREEN Verification runs fully in Mode 3 with 4 checks: Check 1 compares test file checksum against stored value from Step 8; Check 2 greps for skip/focus markers; Check 3 runs the test command and requires exit code 0; Check 4 checks for hardcoded returns. Lines 206-231. The Mode 3 Phase Execution table confirms: 'Step 4d: GREEN Verification -- RUNS -- Checksum + skip markers + all-tests-pass'. Line 615."
+    },
+    {
+      "text": "Still performs adversarial review on the test+implementation pair",
+      "passed": true,
+      "evidence": "Step 12 describes the full Adversarial Review (Stage 2 of the three-stage pipeline) with inputs (spec-contract, test file from disk, impl file from disk, scoring rubric), all 5 review categories (Test Completeness, Test Quality, Implementation Quality, Cheating Detection, Coverage Gaps), and the 5 anti-patterns from testing-anti-patterns.md. The Mode 3 Phase Execution table confirms: 'Step 4f: Adversarial Review -- RUNS -- Stage 2; only after spec compliance passes'. Lines 314-376 and 616."
+    },
+    {
+      "text": "Does NOT ask the user to confirm a work decomposition plan for a single provided test",
+      "passed": true,
+      "evidence": "Step 6 explicitly states: 'No confirmation dialog: A single user-provided test file produces one work unit. The multi-unit \"Proceed? [confirm/modify/cancel]\" dialog (SKILL.md lines 203-229) is not shown -- it would be redundant noise.' Lines 126-127."
+    }
+  ],
+  "summary": {
+    "passed": 6,
+    "failed": 0,
+    "total": 6,
+    "pass_rate": 1.0
+  },
+  "claims": [
+    "Mode 3 (user-provided test) is correctly detected from the 'implement against' phrasing plus test file path.",
+    "Test Writer and RED verification are skipped in Mode 3, but test file checksums are still recorded (Step 8).",
+    "Information barrier is maintained: test file contents read from disk, not from any agent output.",
+    "GREEN verification runs fully with checksum comparison, skip marker scan, and test execution.",
+    "The three-stage review pipeline (Spec Compliance, Adversarial, Code Quality) runs completely in Mode 3.",
+    "The subagent status protocol (DONE, DONE_WITH_CONCERNS, NEEDS_CONTEXT, BLOCKED) is documented for all agents in Mode 3.",
+    "Single-unit Mode 3 correctly skips the redundant confirmation dialog."
+  ],
+  "eval_feedback": {
+    "suggestions": [
+      "This trace is a procedural specification rather than an execution log. It describes what SHOULD happen rather than what DID happen, using language like 'Expected result' and 'Suppose'. A captured execution trace would provide stronger evidence.",
+      "The trace focuses heavily on the three-stage review pipeline and subagent status protocol (its stated focus areas) but does not show actual test file contents or implementation output, making it harder to verify that the pipeline was actually executed.",
+      "The Design Gate skip and RED Verification skip are correctly handled for Mode 3, but the trace could be more explicit about WHY RED verification is skipped (the user owns the tests and their quality is trusted)."
+    ],
+    "overall": "All 6 assertions pass. The trace demonstrates correct Mode 3 behavior: test file is used as-is (no Test Writer), implementation is written against it with information barrier, and all verification/review steps that should run in Mode 3 do run. The trace is structured as a specification walkthrough rather than a captured log, but it correctly describes the expected behavior at each step."
+  }
+}

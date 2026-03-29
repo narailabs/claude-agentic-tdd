@@ -1,0 +1,68 @@
+{
+  "expectations": [
+    {
+      "text": "Detects entry point mode 4 (plan execution)",
+      "passed": true,
+      "evidence": "Trace Section 1 maps the input '/tdd execute docs/plan.md' against all four mode patterns in a table and correctly matches Mode 4 via SKILL.md line 106 ('execute plan...' or provides a plan file). The trace then enumerates all six Mode 4 adaptations (task extraction, classification, dependency ordering, design gate skip, implementer subagent, status handling) that are applied. This matches SKILL.md lines 99-107 and 122-131 exactly."
+    },
+    {
+      "text": "Classifies tasks into code (registration, login) and non-code (migration, config, docs) types",
+      "passed": true,
+      "evidence": "Trace Section 2 presents a classification table with all 5 tasks. Registration and login are classified as 'code' (application logic needing behavioral tests). Migration, env-config, and API docs are classified as 'task' (non-code). Each classification includes a rationale referencing both SKILL.md line 204 ('whether the task produces code that needs tests') and specific line numbers in reference/implementer-prompt.md that enumerate non-code categories (migrations, configs, docs)."
+    },
+    {
+      "text": "Routes code tasks through the full TDD pipeline (Test Writer -> RED -> Code Writer -> GREEN -> Review)",
+      "passed": true,
+      "evidence": "Trace Section 3 details the 7-step pipeline for code tasks (Tasks 2 and 3): Step 4a Test Writer, Step 4b RED Verification (5 checks + checksums), Step 4c Code Writer (information barrier enforced), Step 4d GREEN Verification (4 checks), Step 4e Spec Compliance Review, Step 4f Adversarial Review, Step 4g Code Quality Review. Section 8 (execution timeline) walks through the identical pipeline for both user-registration (Batch 2) and user-login (Batch 3) with state transitions at each step."
+    },
+    {
+      "text": "Routes non-code tasks through implementer dispatch (Implementer -> Spec Compliance -> Code Quality)",
+      "passed": true,
+      "evidence": "Trace Section 3 under 'Non-Code Task Pipeline' describes the 3-step dispatch for Tasks 1, 4, and 5: Implementer spawn (Step 4h with inline task text), Spec Compliance Review (Stage 1), Code Quality Review (Stage 2). The trace explicitly notes adversarial review is skipped for non-code tasks, citing SKILL.md line 469. Section 6 explains the rationale: adversarial review is TDD-specific (cheating detection, mock analysis, test-implementation coupling) and none of those checks apply to migrations, configs, or docs."
+    },
+    {
+      "text": "Respects dependency ordering -- migration before registration, registration before login, config before login, both before docs",
+      "passed": true,
+      "evidence": "Trace Section 4 shows the full dependency graph and topological sort producing 4 batches: Batch 1 (parallel: database-migration, env-config -- both have no dependencies), Batch 2 (user-registration -- depends on migration in Batch 1), Batch 3 (user-login -- depends on registration Batch 2 and env-config Batch 1, so max+1 = Batch 3), Batch 4 (api-docs -- depends on registration Batch 2 and login Batch 3, so max+1 = Batch 4). The execution timeline in Section 8 confirms batch completion is a hard gate: 'Wait: Both Task 1 and Task 4 must fully complete (including reviews) before Batch 2 starts.' All five dependency constraints are satisfied."
+    },
+    {
+      "text": "Presents a work plan showing task types and execution batches before proceeding",
+      "passed": true,
+      "evidence": "Trace Section 4 under 'User Confirmation' (SKILL.md lines 219-296) presents a complete work plan block with: framework, mode (plan-execution), parallel config, work unit count (5 total, 2 code, 3 task), each unit listed with its type tag ([code] or [task]), spec, files, and dependencies, followed by a 4-batch execution plan with dependency annotations. Ends with 'Proceed? [confirm/modify/cancel]' and states 'The orchestrator waits for user confirmation before proceeding.'"
+    },
+    {
+      "text": "Applies the subagent status protocol (DONE/DONE_WITH_CONCERNS/NEEDS_CONTEXT/BLOCKED) to all agents",
+      "passed": true,
+      "evidence": "Trace Section 5 presents the 4-status protocol in a table with orchestrator actions for each status. It then details status handling per agent type (Test Writer, Code Writer, Implementer) -- all three agent types use the identical four statuses with type-specific response guidance. The critical rule is quoted: 'Never ignore an escalation or force the same subagent to retry without changes.' Implementer-specific escalation guidance from reference/implementer-prompt.md is also cited (lines 66-73, 79-83, 88-95). Section 8 timeline shows status reporting at every agent spawn point."
+    },
+    {
+      "text": "Runs a final holistic review across all tasks after individual completion",
+      "passed": true,
+      "evidence": "Trace Section 7 describes Phase 5 (Final Holistic Review) triggered after all 5 work units across all 4 batches complete. Five steps are enumerated: (1) full test suite run -- all files together, not individually, (2) pristine output verification -- no warnings/skips/pending, (3) holistic code review across all units -- with scenario-specific examples (shared types between registration/login, JWT config consumption, migration schema matching), (4) cross-unit integration check with all 5 dependency relationships verified, (5) fix with evidence if issues found. The Iron Law and anti-rationalization table (5 excuses with responses) are included. This matches SKILL.md lines 526-549."
+    }
+  ],
+  "summary": {
+    "passed": 8,
+    "failed": 0,
+    "total": 8,
+    "pass_rate": 1.0
+  },
+  "claims": [
+    "Mode 4 detection is unambiguous: 'execute' keyword plus file path triggers plan-execution mode, with all six Mode 4 adaptations applied",
+    "Task classification uses a clear binary criterion ('produces code that needs tests') backed by an explicit category list in the implementer prompt",
+    "Two distinct pipelines are fully specified: 7-step TDD pipeline for code tasks (5 agent spawns each) and 3-step implementer dispatch for non-code tasks (3 agent spawns each)",
+    "Dependency graph is computed via topological sort producing 4 batches with batch completion as a hard gate",
+    "Work plan is presented to the user before execution begins, showing all units with types, dependencies, and batch assignments",
+    "The 4-status protocol (DONE/DONE_WITH_CONCERNS/NEEDS_CONTEXT/BLOCKED) is universal across all agent types with type-specific handling guidance",
+    "Phase 5 final holistic review runs the full test suite, verifies pristine output, performs cross-unit integration checks, and enforces anti-rationalization rules",
+    "Total minimum agent spawns: 19 (2 Test Writers, 2 Code Writers, 3 Implementers, 5 Spec Compliance Reviewers, 2 Adversarial Reviewers, 5 Code Quality Reviewers)"
+  ],
+  "eval_feedback": {
+    "suggestions": [
+      "The trace is thorough and well-structured, but it is entirely derived from reading the SKILL.md and reference files -- no actual execution occurred. Future evals should distinguish between 'the skill specifies X' and 'the execution demonstrated X' to test runtime behavior rather than document comprehension.",
+      "The trace does not show any error paths or retry scenarios. A real plan-execution trace would likely encounter at least one NEEDS_CONTEXT or DONE_WITH_CONCERNS status. Including a simulated error path would strengthen coverage of assertion 7 (status protocol).",
+      "The work plan presentation (assertion 6) includes task numbering that differs from the plan's original task ordering (Unit 3 in the work plan is env-config which was Task 4 in the scenario). This renumbering is fine for execution but worth noting as it could confuse users comparing plan to execution output."
+    ],
+    "overall": "All 8 assertions pass. The trace demonstrates comprehensive coverage of the plan-execution mode, correctly mapping each assertion to specific SKILL.md line references and reference document content. The classification logic, pipeline routing, dependency ordering, work plan presentation, status protocol, and final holistic review are all accurately described with proper citations. The primary limitation is that this is a specification trace (what the skill says it would do) rather than an execution trace (what it actually did), so it validates document completeness rather than runtime correctness."
+  }
+}

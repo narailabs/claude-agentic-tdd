@@ -8,12 +8,14 @@ agentic-tdd decomposes feature specifications into work units, then builds each 
 
 1. **Test Writer** — writes failing tests from a spec contract (never sees implementation)
 2. **Code Writer** — implements to make tests pass (never sees Test Writer's reasoning)
-3. **Adversarial Reviewer** — tries to break the tests and find cheating
+3. **Spec Compliance Reviewer** — verifies implementation matches the spec contract
+4. **Adversarial Reviewer** — tries to break the tests and find cheating
 
 Anti-cheat guardrails verify at each step:
 - RED: tests must fail before implementation exists
-- GREEN: tests must pass after implementation, and test files must be unchanged
+- GREEN: tests must pass after implementation, and test files must be unchanged (checksum verified)
 - Assertion density, behavior-over-implementation checks, skip marker detection
+- 5 documented testing anti-patterns are flagged automatically
 
 ## Installation
 
@@ -57,10 +59,78 @@ Enable agent teams in `.claude/settings.json`:
 /tdd implement against src/__tests__/auth.test.ts
 ```
 
-### Options
+### Complex spec with design review
 
-- `--skip-failed` — skip work units that fail after max retries (default: escalate to user)
-- `--config <path>` — use a custom config file
+```
+/tdd "build a payment system with Stripe integration" --design
+```
+
+### Simple utility, skip design
+
+```
+/tdd "URL parsing helper" --skip-design
+```
+
+### Flags
+
+| Flag | Description |
+|------|-------------|
+| `--skip-failed` | Skip work units that fail after max retries (default: escalate to user) |
+| `--config <path>` | Use a custom `.tdd.config.json` |
+| `--design` | Force the design gate even for simple specs |
+| `--skip-design` | Skip the design gate entirely |
+
+## How It Works
+
+### Phase 0: Design Gate (optional)
+
+For complex or ambiguous specs, agentic-tdd runs a design refinement step — clarifying questions, trade-off analysis, and a design summary — before any code is written. Triggers automatically for multi-component specs or when `--design` is passed.
+
+### Phase 1: Framework Detection
+
+Auto-detects your test framework from project files (package.json, pyproject.toml, go.mod, Cargo.toml, etc.). Supports 10+ languages. Falls back to asking you if detection fails.
+
+### Phase 2: Work Decomposition
+
+Analyzes the spec and breaks it into independent work units with dependency tracking. Presents the plan for your confirmation before proceeding.
+
+### Phase 3: State Persistence
+
+Creates `.tdd-state.json` for session resume. If interrupted, the next `/tdd` invocation detects the state file and offers to resume.
+
+### Phase 4: Agent Team Orchestration
+
+For each work unit (parallel where dependencies allow):
+
+1. **Test Writer** writes failing tests from the spec contract
+2. **RED verification** confirms tests fail correctly (not syntax errors)
+3. **Code Writer** implements to make tests pass (information barrier enforced)
+4. **GREEN verification** confirms tests pass and test files are unchanged
+5. **Spec Compliance Review** verifies the implementation matches the spec
+6. **Adversarial Review** tries to break tests and catch cheating
+
+### Phase 5: Final Verification
+
+Runs the full test suite across all units to catch integration issues. No completion claim without fresh test output as evidence.
+
+### Phase 6: Report
+
+Generates `tdd-report.md` (human-readable summary) and `tdd-session.jsonl` (structured event log).
+
+### Phase 7: Cleanup
+
+Shuts down agents, removes intermediate artifacts (`spec-contract-*.md` files), updates state.
+
+### Model Cost Optimization
+
+The `execution.modelStrategy` config key controls agent model assignment:
+
+| Strategy | Behavior |
+|----------|----------|
+| `"auto"` (default) | Assess complexity per work unit and assign models accordingly |
+| `"standard"` | Default model for all agents |
+| `"fast"` | Cheapest capable model for all agents |
+| `"capable"` | Most capable model for all agents |
 
 ## Configuration
 
@@ -74,10 +144,17 @@ Enable agent teams in `.claude/settings.json`:
   },
   "antiCheat": {
     "minAssertionsPerTest": 2,
-    "maxRetries": 3
+    "maxRetries": 3,
+    "maxMockDepth": 2,
+    "flagPrivateMethodTests": true
   },
   "execution": {
-    "maxParallelPairs": 3
+    "maxParallelPairs": 3,
+    "modelStrategy": "auto"
+  },
+  "reporting": {
+    "generateReport": true,
+    "generateSessionLog": true
   }
 }
 ```
@@ -86,15 +163,13 @@ Enable agent teams in `.claude/settings.json`:
 
 Add a `## TDD Configuration` section to your project's CLAUDE.md with test conventions.
 
-## How It Works
+## Entry Point Modes
 
-1. Framework auto-detected from project files (or configured)
-2. Spec decomposed into independent work units
-3. User confirms the plan
-4. For each unit: Test Writer → RED verification → Code Writer → GREEN verification → Adversarial Review
-5. Independent units run in parallel; dependent units respect ordering
-6. Final holistic review across all units
-7. Report generated: `tdd-report.md` + `tdd-session.jsonl`
+| Mode | Trigger | Behavior |
+|------|---------|----------|
+| **1. Natural language spec** | `/tdd implement X` | Full pipeline: design gate → decompose → test → implement → review |
+| **2. Existing codebase** | `/tdd add test coverage for src/` | Characterization tests for existing code; RED verification hides source to prove test dependency |
+| **3. User-provided test** | `/tdd implement against tests/foo.test.ts` | Skips Test Writer and RED verification; goes straight to Code Writer |
 
 ## Output
 

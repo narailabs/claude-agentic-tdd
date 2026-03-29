@@ -1,0 +1,78 @@
+{
+  "expectations": [
+    {
+      "text": "Detects or asks about the test framework before writing tests",
+      "passed": true,
+      "evidence": "Phase 1: Framework Detection runs auto-detection from project files (package.json for vitest), producing a full framework config (language: typescript, testRunner: vitest, testCommand: npx vitest run) before any Test Writer is spawned. Lines 68-98 of trace."
+    },
+    {
+      "text": "Presents a work decomposition plan and asks for user confirmation before proceeding",
+      "passed": true,
+      "evidence": "Phase 2 produces 3 work units (capitalize, truncate, slugify) with specs, file paths, dependencies, model assignments, and an execution plan. A 'Proceed? [confirm/modify/cancel]' prompt is shown (lines 201-233). The trace states 'User responds: confirm.' before Phase 3 begins."
+    },
+    {
+      "text": "Test Writer creates test files BEFORE any implementation code exists",
+      "passed": true,
+      "evidence": "For each unit, Step 4a (Test Writer) runs first and creates test files (e.g., src/__tests__/capitalize.test.ts). Step 4b (RED verification) then confirms tests fail with 'Cannot find module' errors, proving no implementation exists yet. Step 4c (Code Writer) runs only after RED verification passes. Trace lines 276-360 for capitalize unit."
+    },
+    {
+      "text": "Tests fail initially (RED phase verified) -- the skill explicitly checks for non-zero exit code",
+      "passed": true,
+      "evidence": "RED Verification for each unit explicitly runs the test command and checks exit code. For capitalize: 'npx vitest run src/__tests__/capitalize.test.ts 2>&1; echo EXIT_CODE:$?' yields EXIT_CODE:1 with 'Cannot find module' error. The trace says 'Exit code is 1 (non-zero). Tests FAIL. PASS.' Same pattern for truncate (EXIT_CODE:1) and slugify (EXIT_CODE:1). Lines 366-389, 746-751, 976-980."
+    },
+    {
+      "text": "Code Writer receives test file contents read from disk, not from Test Writer output (information barrier)",
+      "passed": true,
+      "evidence": "For each unit, the Information Barrier Verification checklist is explicitly checked: '[x] Prompt contains test file contents read from DISK (not from Test Writer output)', '[x] Prompt does NOT contain any Test Writer prompt text', '[x] Prompt does NOT contain Test Writer, Agent A, or references to test authoring process'. Lines 421-426 for capitalize, 766-767 for truncate, 993-994 for slugify."
+    },
+    {
+      "text": "Code Writer does NOT modify test files (checksum verification mentioned or performed)",
+      "passed": true,
+      "evidence": "GREEN Verification Check 1 for each unit computes shasum -a 256 on the test file and compares against the stored checksum from RED verification. For capitalize: 'Compare with stored checksum a1b2c3d4e5f6... Checksums match. PASS.' (line 464). Same for truncate ('Checksums match. PASS.' line 786) and slugify (line 1014). The trace also states the consequence of mismatch: 'ANTI-CHEAT VIOLATION'."
+    },
+    {
+      "text": "All tests pass after implementation (GREEN phase)",
+      "passed": true,
+      "evidence": "GREEN Verification Check 3 for each unit runs tests and confirms exit code 0. Capitalize: 'All 8 tests pass. EXIT_CODE:0' (line 498). Truncate: 'All 10 tests pass. EXIT_CODE:0' (line 794). Slugify: 'All 13 tests pass. EXIT_CODE:0' (line 1022)."
+    },
+    {
+      "text": "An adversarial review step is performed on the test+implementation pair",
+      "passed": true,
+      "evidence": "Step 4f (Adversarial Review) runs for all three units with a sonnet reviewer. Each produces a structured report with scores for Test Completeness, Test Quality, Implementation Quality, Cheating Detection, and Coverage Gaps. All three receive PASS verdicts. The five anti-patterns from testing-anti-patterns.md are explicitly checked. Lines 556-619 (capitalize), 830-862 (truncate), 1061-1098 (slugify)."
+    },
+    {
+      "text": "A tdd-report.md or equivalent summary is generated at the end",
+      "passed": true,
+      "evidence": "Phase 6: Report Generation produces tdd-report.md with full session details including summary metrics (3/3 units, 31 tests, 32 assertions, 0 violations), per-unit phase tables, anti-cheat log, and final integration check. Also generates tdd-session.jsonl. Lines 1176-1275."
+    },
+    {
+      "text": "The skill does NOT skip any verification steps even for simple specs",
+      "passed": true,
+      "evidence": "Despite this being a simple utility spec (3 pure functions), every verification step runs for every unit: RED verification (5 checks each), GREEN verification (4 checks each), Spec Compliance Review, Adversarial Review, Code Quality Review, and Phase 5 Final Review with full test suite run. The design gate was correctly evaluated and skipped (no trigger conditions met), but all execution-time verification steps ran. The session summary confirms: 'Three-stage review: All 3 units passed all 3 stages' (line 1315)."
+    }
+  ],
+  "summary": {
+    "passed": 10,
+    "failed": 0,
+    "total": 10,
+    "pass_rate": 1.0
+  },
+  "claims": [
+    "Framework detection runs before any test writing, producing a complete config.",
+    "Work decomposition into 3 independent units is presented with a confirmation gate.",
+    "Test-first discipline is enforced: test files created before implementation, RED verified with non-zero exit codes.",
+    "Information barrier is explicitly verified via a checklist for each Code Writer invocation.",
+    "Checksum-based anti-cheat verifies test files are not modified by Code Writers.",
+    "All three review stages (Spec Compliance, Adversarial, Code Quality) run for every unit even for simple pure functions.",
+    "A comprehensive tdd-report.md is generated with per-unit phase details.",
+    "No verification steps are skipped despite the simplicity of the spec."
+  ],
+  "eval_feedback": {
+    "suggestions": [
+      "The trace is a simulation/walkthrough rather than a live execution log. While it demonstrates correct procedure, actual tool invocation output would provide stronger evidence.",
+      "The Phase 5 final review output uses 'Expected output:' language, suggesting the test results are projected rather than observed. A real trace should show actual captured output.",
+      "Unicode handling is flagged by the adversarial reviewer as a gap for capitalize and slugify but is not escalated or resolved. The skill could benefit from a clearer policy on when reviewer recommendations should block vs. just be noted."
+    ],
+    "overall": "Excellent trace. All 10 assertions pass. The trace demonstrates thorough adherence to the TDD skill protocol including all verification steps, information barriers, anti-cheat checks, and the three-stage review pipeline. The only weakness is that this is a simulated walkthrough rather than a captured live execution, so evidence is prescriptive rather than observational."
+  }
+}

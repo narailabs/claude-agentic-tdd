@@ -1,0 +1,67 @@
+{
+  "expectations": [
+    {
+      "text": "Triggers the design gate (Phase 0) due to ambiguity",
+      "passed": true,
+      "evidence": "The trace explicitly evaluates three trigger conditions from the SKILL.md spec: (1) 3+ distinct features ('payments', 'credit cards', 'refunds'), (2) external integrations (payment processors), (3) high ambiguity ('like credit cards and stuff', 'idk the details yet'). All three conditions are met. The trace states 'Result: ALL THREE positive conditions are met. The design gate TRIGGERS.' This matches the SKILL.md rule 'Run the design gate when ANY of: spec mentions 3+ distinct features, spec involves external integrations, spec is ambiguous about data flow/ownership/error handling.' No --skip-design flag was present."
+    },
+    {
+      "text": "Asks clarifying questions about the payment system -- does NOT assume specific technologies or providers",
+      "passed": true,
+      "evidence": "Three clarifying questions were asked: (1) 'What types of payments do you need to support?' -- offers examples without prescribing. (2) 'For refunds: should the system support full refunds only, or also partial refunds?' -- clarifies scope. (3) 'How should this system interact with an actual payment processor? Should it define an abstract interface that any processor could implement, or do you have a specific provider in mind?' The trace explicitly notes: 'The skill does NOT say \"Should we use Stripe?\" or \"I'll integrate with Stripe.\" It asks the user to specify, or proposes an abstraction.' The design summary's Out of Scope section lists 'Specific payment provider implementations (Stripe, PayPal, etc.)' confirming no provider was assumed."
+    },
+    {
+      "text": "Asks questions one at a time, not as a dump of 10 questions at once",
+      "passed": true,
+      "evidence": "The trace shows three separate clarifying question blocks, each followed by a simulated user response before the next question is asked: Question 1 (payment types) -> user responds -> Question 2 (refund scope) -> user responds -> Question 3 (integration strategy) -> user responds. The trace explicitly states: 'It does NOT dump all questions as a numbered list.' This matches the SKILL.md instruction: 'Ask one at a time -- do not dump a questionnaire.' Three questions falls within the SKILL.md guideline of '1-3 targeted questions about ambiguities.'"
+    },
+    {
+      "text": "Does NOT start writing code or tests before clarifying the spec",
+      "passed": true,
+      "evidence": "The trace includes an explicit section titled 'HARD GATE' (Step 5) that states: 'No Phase 1 (framework detection) has run yet beyond what was needed for the design discussion. No Phase 2 (decomposition) has run. No work units have been created. No Test Writers have been spawned. No Code Writers have been spawned. ZERO lines of code or tests have been written. ZERO files have been created in the project directory.' Framework detection (Phase 1) only runs in Step 6, after the user says 'confirm'. Work decomposition (Phase 2) runs in Step 7, also after confirmation. Agent orchestration (Phase 4) runs in Step 9. This ordering matches the SKILL.md requirement: 'HARD GATE: No decomposition (Phase 2) until the design is approved.'"
+    },
+    {
+      "text": "Proposes design approaches with trade-offs (e.g., Stripe vs custom, sync vs async processing)",
+      "passed": false,
+      "evidence": "The trace does NOT show the skill presenting explicit trade-off options with pros/cons. The SKILL.md specifies in the Design Refinement Process step 2: 'Propose approaches (when there are genuine trade-offs): Present 2-3 options with pros/cons.' The third clarifying question ('abstract interface vs specific provider') could be interpreted as presenting two approaches, but it does not include any pros/cons analysis. The design summary lists 'Key Decisions' with rationale, but these are stated as fait accompli, not as options for the user to choose between. For example, it states 'Abstract processor interface: Decouples business logic from any specific payment provider' without presenting the alternative (e.g., 'vs. direct Stripe integration: faster to build but locks you in'). The expectation specifically mentions 'Stripe vs custom, sync vs async processing' as examples of trade-off proposals -- neither pattern appears in the trace."
+    },
+    {
+      "text": "Waits for user approval of the design before decomposing into work units",
+      "passed": true,
+      "evidence": "The trace shows a clear sequencing: (1) Design summary presented at the end of Step 5, ending with 'Proceed with this design? [confirm/modify/cancel]'. (2) A 'HARD GATE' section explicitly stating the skill stops and waits. (3) 'User responds (simulated): \"confirm\"'. (4) Only then does Phase 1 (framework detection, Step 6) and Phase 2 (work decomposition, Step 7) proceed. The decomposition in Step 7 produces 4 work units derived from the approved design components (PaymentProcessor interface, Payment model, charge flow, refund flow) -- not from the original ambiguous spec. This matches SKILL.md: 'HARD GATE: No decomposition (Phase 2) until the design is approved.'"
+    }
+  ],
+  "summary": {
+    "passed": 5,
+    "failed": 1,
+    "total": 6,
+    "pass_rate": 0.833
+  },
+  "claims": [
+    {
+      "claim": "The trace is a simulated/synthetic walkthrough, not an actual execution log",
+      "verified": true,
+      "evidence": "The trace uses phrasing like 'User responds (simulated)' throughout, and follows the SKILL.md structure section by section rather than showing raw tool calls, agent prompts, or actual command output. The timing.json shows 41134 total tokens and 124.2 seconds, which is plausible for generating a synthetic trace document rather than a real multi-agent execution (which would involve many more tokens across Test Writer, Code Writer, and Reviewer agents). A real execution of 4 work units with agent teams would produce substantially more tokens."
+    },
+    {
+      "claim": "No actual code or tests were produced to verify the TDD pipeline works end-to-end",
+      "verified": true,
+      "evidence": "The trace describes what would happen ('Step 4a: Spawn Test Writer', 'Step 4b: RED verification', etc.) but contains no actual test code, implementation code, or real command output. The description of Phases 4-7 is a high-level narration of expected behavior, not evidence of execution."
+    },
+    {
+      "claim": "The dependency ordering described is correct per the work unit definitions",
+      "verified": true,
+      "evidence": "Units 1 (payment-processor-interface) and 2 (payment-model) have no dependencies and are stated to run in parallel. Unit 3 (charge-flow) depends on [payment-processor-interface, payment-model], so it runs after both complete. Unit 4 (refund-flow) depends on [payment-processor-interface, payment-model, charge-flow], so it runs last. The execution plan ('Units 1 and 2 in parallel, then Unit 3, then Unit 4') is consistent with these declared dependencies."
+    }
+  ],
+  "eval_feedback": {
+    "suggestions": [
+      "The trace is a synthetic walkthrough, not an actual execution. This means the eval only tests whether the trace author understood the SKILL.md, not whether the skill itself behaves correctly when actually run. To increase confidence, the eval should execute the skill against a real project and capture actual tool calls, agent outputs, and file system changes.",
+      "Expectation 5 ('Proposes design approaches with trade-offs') targets a specific SKILL.md behavior (step 2 of the Design Refinement Process) that was skipped in the trace. The trace went from clarifying questions directly to a design summary without an explicit trade-off proposal step. This is a genuine gap -- either the skill should be updated to ensure trade-off proposals occur, or the expectation should be refined to clarify when trade-offs are expected vs. when clarifying questions suffice.",
+      "The simulated user responses are cooperative and unambiguous ('Just one-time credit card charges', 'confirm'). Testing with adversarial or confused user responses would better validate the design gate's robustness. For example: what happens if the user says 'I don't know' to a clarifying question, or contradicts a previous answer?",
+      "The token count (41,134) and duration (124.2s) should be contextualized. If this is a synthetic trace generation, these metrics don't reflect actual skill execution cost. Future evals should distinguish trace-generation cost from skill-execution cost.",
+      "The work decomposition confirmation step (Step 7) also has a 'Proceed? [confirm/modify/cancel]' gate, but this second gate is not part of the expectations being tested. Consider adding an expectation to verify that the skill also gates on work decomposition approval, not just design approval."
+    ],
+    "overall": "The eval effectively tests the Phase 0 design gate behavior for an ambiguous spec. Five of six expectations pass with clear evidence. The one failure (trade-off proposals) identifies a genuine gap where the trace skips the SKILL.md's 'propose approaches with trade-offs' step, going straight from clarifying questions to a design summary. The primary limitation is that this is a synthetic trace rather than a real execution, so it validates the trace author's understanding of the skill rather than the skill's actual runtime behavior."
+  }
+}

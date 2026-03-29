@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+from __future__ import annotations
 """Generate and serve a review page for eval results.
 
 Reads the workspace directory, discovers runs (directories with outputs/),

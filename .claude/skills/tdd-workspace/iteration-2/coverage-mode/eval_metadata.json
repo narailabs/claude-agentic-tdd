@@ -1,0 +1,14 @@
+{
+  "eval_id": 4,
+  "eval_name": "coverage-mode",
+  "prompt": "/tdd add test coverage for src/utils/ --skip-design",
+  "assertions": [
+    {"text": "Detects entry point mode 2 — existing codebase coverage mode", "type": "behavioral"},
+    {"text": "Reads and analyzes the existing source files in src/utils/ before writing tests", "type": "behavioral"},
+    {"text": "Skips the design gate because --skip-design flag was passed", "type": "behavioral"},
+    {"text": "Generates tests derived from reading specific source file contents (function signatures, return types, edge cases) — not just generic tests", "type": "behavioral"},
+    {"text": "Describes or resolves the tension between RED verification and existing implementations (characterization tests pass immediately against existing code)", "type": "verification"},
+    {"text": "Demonstrates the adapted hide-and-restore RED verification procedure for coverage mode (temporarily hide impl, verify import failures, restore, verify pass)", "type": "verification"},
+    {"text": "Produces a report showing coverage additions", "type": "output"}
+  ]
+}

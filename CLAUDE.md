@@ -56,9 +56,10 @@ This plugin is structured as:
   - `code-writer-prompt.md` — Code Writer agent template (information barrier)
   - `adversarial-reviewer-prompt.md` — adversarial reviewer template
   - `spec-compliance-reviewer-prompt.md` — spec compliance reviewer template
+  - `code-quality-reviewer-prompt.md` — code quality reviewer template (structure, naming, discipline)
+  - `implementer-prompt.md` — implementer agent template for non-code tasks (Mode 4)
   - `testing-anti-patterns.md` — 5 common testing anti-patterns with gate functions
   - `report-format.md` — report and session log schema
 - `.claude-plugin/plugin.json` — marketplace manifest
-- `skills/tdd/` — local dev mirror
 
 To test locally, copy `.claude/skills/tdd/` to your test project's `.claude/skills/tdd/`.

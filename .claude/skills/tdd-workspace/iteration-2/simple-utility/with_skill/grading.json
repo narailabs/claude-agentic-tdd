@@ -1,0 +1,109 @@
+{
+  "expectations": [
+    {
+      "text": "Detects or asks about the test framework before writing tests",
+      "passed": true,
+      "evidence": "Phase 1 (Framework Detection) runs before any Test Writer is spawned. Trace lines 111-147 show the orchestrator auto-detecting TypeScript + Vitest from package.json/tsconfig.json, producing a complete framework config (language, testRunner, testCommand, testFilePattern, sourceDir, testDir) that is stored in the state file and used by all subsequent agents. This occurs before Phase 2 (Decomposition) and well before Phase 4 (Agent Team Orchestration). The detected framework info is also shown to the user in the confirmation prompt (line 194: 'Framework: vitest (auto-detected)')."
+    },
+    {
+      "text": "Presents a work decomposition plan and asks for user confirmation before proceeding",
+      "passed": true,
+      "evidence": "Phase 2 (lines 150-218) decomposes the spec into three work units (capitalize, truncate, slugify) with explicit specs, file paths, and dependency analysis. Lines 187-216 show the orchestrator presenting a formatted plan ('## TDD Work Plan') including framework, mode, unit details, dependencies, and execution strategy, ending with 'Proceed? [confirm/modify/cancel]'. Line 218 states 'User confirms. Execution proceeds.' No agent work begins until after confirmation."
+    },
+    {
+      "text": "Test Writer creates test files BEFORE any implementation code exists",
+      "passed": true,
+      "evidence": "For each unit, the Test Writer (Step 4a) runs first and creates only test files and spec-contract files. For Unit 1 (capitalize), the Test Writer produces capitalize.test.ts (lines 347-386) before any implementation exists. The RED verification (Step 4b) confirms this ordering: tests fail because 'src/string-utils.ts does not exist' (line 437) or has 'no exported member' (lines 815-816 for truncate, line 967 for slugify). The Code Writer (Step 4c) only runs after RED verification passes. The skill template explicitly instructs the Test Writer: 'WRITE TESTS ONLY. Do not create implementation files' (line 326)."
+    },
+    {
+      "text": "Tests fail initially (RED phase verified) -- the skill explicitly checks for non-zero exit code",
+      "passed": true,
+      "evidence": "RED verification is performed for all three units. For capitalize (lines 422-484): the test command includes 'echo EXIT_CODE:$?' (line 435), output shows 'EXIT_CODE:1' (line 445), and the trace explicitly states 'Exit code is 1 (non-zero). Tests FAIL. This is the expected RED state. PASS.' For truncate (lines 807-828): 'EXIT_CODE:1. PASS.' For slugify (lines 963-976): 'Tests fail with import error. EXIT_CODE:1. PASS.' Additionally, Check 3 verifies the failure type is acceptable (import/module error, not syntax error), and Check 4 verifies assertion density."
+    },
+    {
+      "text": "Code Writer receives test file contents read from disk, not from Test Writer output (information barrier)",
+      "passed": true,
+      "evidence": "Lines 487-548 describe the information barrier for Unit 1 in detail. Line 491: 'The orchestrator reads from DISK (not from Test Writer output): 1. Test file contents: reads src/__tests__/capitalize.test.ts from disk 2. Spec-contract: reads src/__tests__/spec-contract-capitalize.md from disk.' A Lead Verification Checklist (lines 494-499) confirms: prompt contains test file contents read from DISK, prompt contains spec-contract read from DISK, prompt does NOT contain any Test Writer prompt text, prompt does NOT contain references to 'Test Writer', 'Agent A', or test authoring. Lines 543-548 enumerate what the Code Writer does NOT receive. For Units 2 and 3, lines 831 and 979 reaffirm 'Information barrier enforced.'"
+    },
+    {
+      "text": "Code Writer does NOT modify test files (checksum verification mentioned or performed)",
+      "passed": true,
+      "evidence": "Checksums are recorded during RED verification (lines 472-478 for capitalize, line 827 for truncate, line 975 for slugify). During GREEN verification, Check 1 explicitly compares checksums: for capitalize (lines 569-575) 'Checksums match. The Code Writer did not modify test files. PASS.' For truncate (line 846) 'Checksum matches. PASS.' For slugify (line 994) 'Checksum matches. PASS.' Additionally, Check 2 scans for skip/focus markers that could subvert tests (lines 577-583, 847, 995)."
+    },
+    {
+      "text": "All tests pass after implementation (GREEN phase)",
+      "passed": true,
+      "evidence": "GREEN verification Check 3 runs the test command and verifies EXIT_CODE:0 for each unit. Capitalize: lines 586-607 show all 8 tests passing with EXIT_CODE:0. Truncate: line 852 'All 10 tests pass. EXIT_CODE:0. PASS.' Slugify: line 996 'All 12 tests pass. EXIT_CODE:0. PASS.' Phase 5 (Final Review, lines 1042-1074) runs the full test suite together: 'Tests: 30 passed EXIT_CODE:0' and the orchestrator 'reads the actual output -- does not assume success' (line 1064)."
+    },
+    {
+      "text": "An adversarial review step is performed on the test+implementation pair",
+      "passed": true,
+      "evidence": "Adversarial review (Step 4f) is performed for all three units. Capitalize: lines 676-742 show a full adversarial review by a sonnet-class model checking Test Completeness (4/5), Test Quality (5/5), Implementation Quality (4/5), Cheating Detection (CLEAN), and Coverage Gaps. Truncate: lines 862-894 show a complete review with all 5/5 scores and CLEAN cheating detection. Slugify: lines 1005-1038 show another full review with specific findings about Unicode handling. Each review follows the adversarial-reviewer-prompt.md template and checks for anti-patterns from testing-anti-patterns.md."
+    },
+    {
+      "text": "A tdd-report.md or equivalent summary is generated at the end",
+      "passed": true,
+      "evidence": "Phase 6 (lines 1105-1197) generates tdd-report.md with a complete session report. Lines 1109-1193 show the full report content including: date, spec, framework, entry point, summary table (work units, tests, assertions, anti-cheat violations, adversarial reviews, retries), detailed per-unit phase tables, anti-cheat log, and final integration check results. The report is listed as a persisted deliverable in the files table (line 1249: 'tdd-report.md | Session report (deliverable) | Yes (not gitignored)'). A tdd-session.jsonl event log is also generated (line 1197)."
+    },
+    {
+      "text": "The skill does NOT skip any verification steps even for simple specs",
+      "passed": true,
+      "evidence": "Despite all three units being classified as 'Simple' complexity (line 65), every verification step runs for every unit: RED verification with all 5 checks (tests exist, tests fail, correct failure type, assertion density, behavior-over-implementation) plus checksum recording; GREEN verification with all 4 checks (test files unchanged via checksum, no skip/focus markers, all tests pass, no hardcoded returns); spec compliance review; adversarial review; and a final integration check (Phase 5) running all 30 tests together. The only step skipped is the Design Gate (Phase 0), which is a planning/architecture step, not a verification step -- and the trace explains this is because the spec describes simple stateless pure functions with no ambiguity (lines 87-107). The model strategy assigns 'haiku' for simpler agent roles but 'sonnet' for reviewers (lines 66-70), showing that even cost optimization does not reduce verification rigor."
+    }
+  ],
+  "summary": {
+    "passed": 10,
+    "failed": 0,
+    "total": 10,
+    "pass_rate": 1.0
+  },
+  "timing": {
+    "total_tokens": 50097,
+    "duration_ms": 267663,
+    "total_duration_seconds": 267.7
+  },
+  "claims": [
+    {
+      "claim": "All three units execute in parallel (maxParallelPairs: 3)",
+      "verified": true,
+      "evidence": "Line 285: 'all three Test Writers are spawned simultaneously'. Line 213: 'Execution plan: All 3 units in parallel'. State file config shows maxParallelPairs: 3 (line 258) and dependency analysis confirms no inter-unit dependencies (line 184)."
+    },
+    {
+      "claim": "Model strategy assigns haiku for Test/Code Writers and sonnet for reviewers",
+      "verified": true,
+      "evidence": "Lines 66-70 show 'Simple' classification leading to Test Writer: haiku, Code Writer: haiku, Reviewer: sonnet. Individual unit headers confirm: Test Writer (model: haiku) at lines 296, 748, 900; Code Writer (model: haiku) at lines 486, 829, 977; reviewers (model: sonnet) at lines 632, 856, 862."
+    },
+    {
+      "claim": "Zero retries needed across all units",
+      "verified": true,
+      "evidence": "Summary lines 5-6: 'All three units pass every stage on the first attempt with zero anti-cheat violations and zero retries.' Report table (lines 1124-1126) shows all units with Retries: 0. Decision Points Summary (lines 1266-1267) states 'All RED verifications Passed on attempt 1' and 'All GREEN verifications Passed on attempt 1'."
+    },
+    {
+      "claim": "Spec-contract files are cleaned up in Phase 7",
+      "verified": true,
+      "evidence": "Lines 1205-1210 show explicit rm commands for all three spec-contract files. The files table (lines 1252-1254) marks them as 'Deleted in Phase 7'."
+    },
+    {
+      "claim": "30 total tests produced across 3 units (8 + 10 + 12)",
+      "verified": true,
+      "evidence": "Summary line 5 states '8 tests for capitalize, 10 for truncate, and 12 for slugify (30 total)'. Integration check (line 1059) confirms 'Tests: 30 passed'. Report summary table (line 1124) shows 'Tests written | 30'."
+    },
+    {
+      "claim": "Design gate (Phase 0) was skipped for this spec",
+      "verified": true,
+      "evidence": "Lines 87-107 analyze whether the design gate triggers, concluding 'Phase 0 is skipped' with rationale that functions are 'simple, stateless string transformations with clear inputs and outputs'. State file shows 'designSummary: null' (line 245). Decision Points Summary (line 1262) confirms 'Design gate | Skipped | Simple utility functions with clear contracts'."
+    }
+  ],
+  "eval_feedback": {
+    "suggestions": [
+      "Assertion 10 ('does NOT skip any verification steps') is ambiguous because Phase 0 (Design Gate) WAS skipped. The trace argues this is not a 'verification step' but a 'planning step', which is a reasonable interpretation -- but the assertion text does not draw this distinction. Consider splitting into two assertions: 'All anti-cheat verification checks run for every unit' and 'Design gate is appropriately triggered or skipped based on spec complexity'. This would test both rigor and judgment separately.",
+      "No assertion tests the FAILURE path or retry loop. This trace is a perfect happy-path execution (zero retries, zero violations, all pass on first attempt). A robust eval suite should include a scenario where the Code Writer produces code that fails GREEN verification, triggering a retry. Without this, we cannot verify that retry logic, error messages, and escalation work correctly.",
+      "No assertion tests the --skip-failed flag, --design flag, or --skip-design flag behavior. These are documented features but none are exercised in this eval scenario.",
+      "Assertion 5 (information barrier) relies on the trace's self-report that contents were 'read from disk'. Since this is a synthetic trace (not a live execution log with actual tool calls), the evidence is the trace's own narrative rather than observed tool invocations. A stronger eval would inspect actual tool call logs or bash command history for 'cat' or 'Read' calls on the test file path.",
+      "No assertion checks whether the user confirmation step (Phase 2) actually blocks execution -- only that it is 'presented'. In a real execution, if the skill proceeds without waiting for user input, this would be a critical bug invisible to the current assertion set.",
+      "The trace is a synthetic/reconstructed trace (uses phrases like 'Assuming both prerequisites pass', 'Expected output', 'Assumed detection result') rather than a verbatim execution log. This means the grading is evaluating whether the trace DESCRIBES the correct behavior, not whether the behavior ACTUALLY occurred. This is a fundamental limitation that should be acknowledged in eval design.",
+      "Timing data (267.7 seconds, 50K tokens) is plausible for this workload but there is no assertion validating cost/performance efficiency. Consider adding a baseline assertion like 'completes in under 10 minutes' or 'uses fewer than 100K tokens'."
+    ],
+    "overall": "All 10 assertions pass against this trace. The trace is thorough and well-structured, demonstrating every phase of the TDD skill with detailed evidence for each verification step. However, the eval suite has significant coverage gaps: it only tests the happy path, relies on a synthetic trace rather than live execution evidence, and does not exercise error recovery, flag handling, or the design gate. The assertions themselves are well-chosen for validating the core TDD discipline (tests before code, RED/GREEN verification, information barrier, adversarial review) but would benefit from adversarial scenarios that stress-test the failure and retry paths."
+  }
+}

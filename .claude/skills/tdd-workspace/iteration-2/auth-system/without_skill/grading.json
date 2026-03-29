@@ -1,0 +1,70 @@
+{
+  "expectations": [
+    {
+      "text": "Triggers the design gate (Phase 0) — asks clarifying questions about the auth system before decomposing",
+      "passed": false,
+      "evidence": "Trace Step 1 explicitly states: 'Would it ask design questions first? No. Default Claude Code does not gate on design review.' The trace lists seven questions that would NOT be asked (database choice, JWT algorithm, password policy, lockout thresholds, email transport, app type, token expiry). Summary confirms: 'Claude Code would not ask a single clarifying question. It would infer defaults for every ambiguous decision.' No design gate was triggered."
+    },
+    {
+      "text": "Produces a design summary with components, data flow, and key decisions before proceeding",
+      "passed": false,
+      "evidence": "Trace evaluation table states: 'Produces design summary with components, data flow, key decisions — No. No design document produced.' The trace shows Claude Code went directly from intake (Step 1) to technology detection (Step 2) to implementation (Step 3) with no intermediate design artifact. The 'What Default Claude Code Does NOT Do' section under '1. No Design Gate' confirms: 'No data flow diagram or component identification.'"
+    },
+    {
+      "text": "Decomposes into at least 3 work units (registration, login, password-reset or similar)",
+      "passed": false,
+      "evidence": "Trace evaluation table states: 'Decomposes into at least 3 work units — No. No formal decomposition; features built linearly.' While Claude Code did implement three features (registration in Step 3c, login in Step 3d, password reset in Step 3e), these were not formalized as discrete work units with acceptance criteria, inputs/outputs, or tracked status. The 'No Formal Decomposition' section confirms: 'No work unit definitions with clear inputs, outputs, and acceptance criteria. No dependency graph. No tracking of unit completion status.'"
+    },
+    {
+      "text": "Identifies dependencies between units (login depends on registration, password-reset depends on registration)",
+      "passed": false,
+      "evidence": "Trace evaluation table states: 'Identifies dependencies between units — No. Dependencies are implicit in build order only.' The 'No Formal Decomposition' section confirms: 'No dependency graph (e.g., \"login depends on registration because it needs user lookup\"). No parallelization analysis.' Dependencies exist in the code (login needs a registered user) but are never explicitly identified or documented."
+    },
+    {
+      "text": "Respects dependency order — implements registration before login and password-reset",
+      "passed": false,
+      "evidence": "The trace shows registration (Step 3c) was implemented before login (Step 3d) and password reset (Step 3e), so the natural ordering is correct. However, the trace evaluation table rates this as only 'Partially' met, noting the order is 'by convention, not tracked formally.' There is no explicit dependency analysis driving the order. Grading as FAIL because the ordering is incidental rather than the result of dependency-aware planning, which is what the expectation describes ('Respects dependency order' implies a deliberate mechanism). The trace itself only awards 0.5 partial credit across all 8 assertions."
+    },
+    {
+      "text": "Each work unit goes through the full RED→GREEN→review cycle independently",
+      "passed": false,
+      "evidence": "Trace evaluation table states: 'Each work unit goes through RED->GREEN->review cycle — No. No RED phase; tests written after all code.' Step 4 confirms: 'Default Claude Code writes tests after implementation is complete. The tests are shaped by what was built, not by what was specified.' The 'No RED/GREEN Verification' section adds: 'There is no RED/GREEN/REFACTOR cycle. Tests are never run in a failing state to confirm they detect missing functionality.' All three features were implemented monolithically before any test was written."
+    },
+    {
+      "text": "Runs a final integration test across all units after individual completion",
+      "passed": false,
+      "evidence": "Trace evaluation table states: 'Runs final integration test across all units — No. Only runs jest once at the end; no dedicated integration pass.' Step 5 shows a single 'npx jest --verbose' run that executes all tests together, but this is not a deliberate integration test phase — it is the only test run, occurring after all implementation and test-writing is complete. There is no separation between unit tests and integration tests, and no cross-feature integration scenarios."
+    },
+    {
+      "text": "The report shows all work units with their individual phase statuses",
+      "passed": false,
+      "evidence": "Trace evaluation table states: 'Report shows all work units with individual phase statuses — No. Output is conversational text, not a structured report.' Step 6 confirms the final output is: 'a conversational summary (\"I built an auth system with these endpoints...\"). This summary is unstructured text, not a formal report.' The 'No Structured Report' section adds: 'No work unit status table. No coverage metrics breakdown per feature. No spec compliance matrix.'"
+    }
+  ],
+  "summary": {
+    "passed": 0,
+    "failed": 8,
+    "total": 8,
+    "pass_rate": 0.0
+  },
+  "claims": [
+    "Default Claude Code does not trigger any design gate or ask clarifying questions before implementation",
+    "No design summary, data flow, or component identification is produced",
+    "Features are built linearly but not formalized as discrete tracked work units",
+    "Dependencies between features are implicit in code but never explicitly identified",
+    "Registration is implemented first by convention, not by dependency-aware planning",
+    "Tests are written after all implementation is complete — no RED phase exists",
+    "A single jest run at the end is the only testing; no dedicated integration test pass",
+    "Output is conversational text, not a structured report with work unit statuses",
+    "The trace is an analytical simulation of expected behavior, not an actual recorded execution"
+  ],
+  "eval_feedback": {
+    "suggestions": [
+      "The trace is a simulated analytical document rather than an actual execution transcript with real tool calls. Future iterations should capture a real Claude Code session to provide ground-truth evidence rather than predicted behavior.",
+      "Expectation 5 (dependency ordering) sits in an ambiguous zone: the natural implementation order happens to match dependency order, but there is no deliberate mechanism. Consider splitting this into two sub-expectations: 'explicitly identifies dependency order' and 'implements in correct order' to avoid partial-credit ambiguity.",
+      "Expectation 7 (integration test) could be made more precise. Define whether 'integration test' means a dedicated test file with cross-feature scenarios, or simply running all tests together. The current wording allows the single jest run to almost qualify.",
+      "The baseline trace document includes its own self-evaluation table and scores, which makes grading feel circular. A raw transcript without pre-embedded judgments would provide a cleaner evaluation target."
+    ],
+    "overall": "The baseline execution (simulated) fails all 8 expectations cleanly. Default Claude Code's implementation-first approach is fundamentally incompatible with the TDD-oriented expectations being measured. This confirms the baseline is a strong negative control: every expectation targets a TDD discipline behavior that default Claude Code does not exhibit. The 0/8 pass rate provides maximum separation from a with-skill run that achieves these behaviors. One caveat: this is a simulated trace rather than a real execution, so the evidence is analytical prediction rather than observed behavior."
+  }
+}

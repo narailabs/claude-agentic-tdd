@@ -58,8 +58,9 @@
         "Detects entry point mode 2 — existing codebase coverage mode",
         "Reads and analyzes the existing source files in src/utils/ before writing tests",
         "Skips the design gate because --skip-design flag was passed",
-        "Generates tests that characterize existing behavior, not just new features",
-        "Still enforces RED verification — tests should fail initially if testing new edge cases",
+        "Generates tests derived from reading specific source file contents (function signatures, return types, edge cases) — not just generic tests",
+        "Describes or resolves the tension between RED verification and existing implementations (characterization tests pass immediately against existing code)",
+        "Demonstrates the adapted hide-and-restore RED verification procedure for coverage mode (temporarily hide impl, verify import failures, restore, verify pass)",
         "Produces a report showing coverage additions"
       ]
     },
@@ -75,6 +76,37 @@
         "Does NOT start writing code or tests before clarifying the spec",
         "Proposes design approaches with trade-offs (e.g., Stripe vs custom, sync vs async processing)",
         "Waits for user approval of the design before decomposing into work units"
+      ]
+    },
+    {
+      "id": 6,
+      "prompt": "/tdd execute docs/plan.md — the plan has 5 tasks: (1) create database migration for users table, (2) implement user registration with email validation, (3) implement user login with JWT, (4) set up environment config, (5) write API docs. Tasks 2 and 3 are code tasks, the rest are non-code tasks. Task 2 depends on task 1, task 3 depends on tasks 2 and 4, task 5 depends on tasks 2 and 3.",
+      "expected_output": "Should detect Mode 4 (plan execution), classify tasks as code or non-code, route code tasks through TDD pipeline and non-code tasks through implementer dispatch, and respect dependency ordering.",
+      "files": [],
+      "expectations": [
+        "Detects entry point mode 4 (plan execution)",
+        "Classifies tasks into code (registration, login) and non-code (migration, config, docs) types",
+        "Routes code tasks through the full TDD pipeline (Test Writer → RED → Code Writer → GREEN → Review)",
+        "Routes non-code tasks through implementer dispatch (Implementer → Spec Compliance → Code Quality)",
+        "Respects dependency ordering — migration before registration, registration before login, config before login, both before docs",
+        "Presents a work plan showing task types and execution batches before proceeding",
+        "Applies the subagent status protocol (DONE/DONE_WITH_CONCERNS/NEEDS_CONTEXT/BLOCKED) to all agents",
+        "Runs a final holistic review across all tasks after individual completion"
+      ]
+    },
+    {
+      "id": 7,
+      "prompt": "/tdd implement a REST API with: (1) GET /users endpoint, (2) POST /users endpoint, (3) GET /users/:id endpoint, (4) DELETE /users/:id endpoint. All endpoints are independent — no dependencies between them.",
+      "expected_output": "Should decompose into 4 independent work units, compute a single parallel batch, and dispatch all units concurrently (up to maxParallelPairs). Each unit gets the full TDD pipeline.",
+      "files": [],
+      "expectations": [
+        "Decomposes into 4 work units with no dependencies between them",
+        "Computes a single parallel batch containing all 4 units",
+        "Presents the execution plan showing all units run concurrently in Batch 1",
+        "Dispatches multiple Test Writers simultaneously (up to maxParallelPairs config, default 3)",
+        "Each unit independently goes through the full RED→GREEN→review cycle",
+        "Applies the three-stage review pipeline: spec compliance → adversarial → code quality",
+        "Runs a final integration test after all units complete"
       ]
     }
   ]

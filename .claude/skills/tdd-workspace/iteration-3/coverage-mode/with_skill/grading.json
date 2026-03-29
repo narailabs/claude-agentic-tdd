@@ -1,0 +1,64 @@
+{
+  "expectations": [
+    {
+      "text": "Detects entry point mode 2 -- existing codebase coverage mode",
+      "passed": true,
+      "evidence": "Step 0 parses the specification text as 'add test coverage for src/utils/' and Step 2 states: 'The phrase \"add test coverage for\" triggers Entry Point Mode 2 (Existing Codebase).' Line 19."
+    },
+    {
+      "text": "Reads and analyzes the existing source files in src/utils/ before writing tests",
+      "passed": true,
+      "evidence": "Step 5 (Phase 2 Work Decomposition) describes Mode 2 adaptation: '5a: Scan source directory -- List all source files in src/utils/' finding formatDate.ts, parseConfig.ts, stringHelpers.ts. '5b: Read each source file -- For each file, read the code to understand: Exported functions/classes and their signatures, Observable behavior, Edge cases, Side effects.' '5c: Produce work units' with reverse-engineered spec-contracts derived from reading the source. Lines 95-129."
+    },
+    {
+      "text": "Skips the design gate because --skip-design flag was passed",
+      "passed": true,
+      "evidence": "Step 3 explicitly states: 'Decision: SKIP. Three independent reasons to skip: 1. Mode 2 (existing codebase) skips design gate by default. 2. --skip-design flag explicitly requests skipping. 3. Characterizing existing code does not require architectural design.' designSummary is set to null. Lines 54-65."
+    },
+    {
+      "text": "Generates tests derived from reading specific source file contents (function signatures, return types, edge cases) -- not just generic tests",
+      "passed": true,
+      "evidence": "Step 5b describes reading each source file to understand 'Exported functions/classes and their signatures, Observable behavior (inputs -> outputs), Edge cases visible in the code (error handling, boundary checks), Side effects.' Step 5c produces spec-contracts that are 'reverse-engineered from existing code' -- e.g., for format-date: 'Characterize the formatDate function. It accepts a Date object and an optional format string. It returns a formatted date string. Currently handles ISO, short, and long formats. Throws on invalid Date input.' Step 7a confirms the Test Writer receives 'a spec-contract derived from reading the existing source file (reverse-engineered behavior spec)'. Lines 106-129 and 200-210."
+    },
+    {
+      "text": "Describes or resolves the tension between RED verification and existing implementations (characterization tests pass immediately against existing code)",
+      "passed": true,
+      "evidence": "Step 7b opens with: 'This is the critical Mode 2 adaptation. Standard RED verification requires tests to FAIL. In coverage mode, the implementation already exists, so characterization tests that PASS immediately is expected, not a violation.' The trace explicitly describes the tension and the resolution: characterization tests passing against existing code is correct behavior, not a cheat. Lines 224-227."
+    },
+    {
+      "text": "Demonstrates the adapted hide-and-restore RED verification procedure for coverage mode (temporarily hide impl, verify import failures, restore, verify pass)",
+      "passed": true,
+      "evidence": "Step 7b describes the full 4-step hide-and-restore procedure: Step 1: 'mv src/utils/formatDate.ts src/utils/formatDate.ts.tdd-hidden' (hide implementation). Step 2: Run tests -- 'they SHOULD FAIL' with import/module errors (if tests pass = ANTI-CHEAT VIOLATION: tautological tests). Step 3: 'mv src/utils/formatDate.ts.tdd-hidden src/utils/formatDate.ts' (restore -- CRITICAL: must happen regardless of outcome). Step 4: Run tests -- 'they SHOULD PASS' (if fail = characterization error). A detailed decision tree and flowchart diagram are provided. Lines 237-288 and 688-728."
+    },
+    {
+      "text": "Produces a report showing coverage additions",
+      "passed": true,
+      "evidence": "Step 10a generates tdd-report.md with Entry Point: existing-codebase, summary metrics (3/3 work units, test count, assertion count, adversarial reviews), and per-unit sections for Format Date, Parse Config, and String Helpers showing all phase statuses. The report notes Code Writer as '(skipped)' where applicable. Lines 610-655."
+    }
+  ],
+  "summary": {
+    "passed": 7,
+    "failed": 0,
+    "total": 7,
+    "pass_rate": 1.0
+  },
+  "claims": [
+    "Mode 2 (existing codebase) is correctly detected from the 'add test coverage for' phrasing.",
+    "Source files are read and analyzed before test writing, producing reverse-engineered spec-contracts.",
+    "Design gate is skipped for three independent reasons (Mode 2 default, --skip-design flag, characterization nature).",
+    "Tests are derived from specific source file analysis (function signatures, edge cases, error handling), not generic patterns.",
+    "The tension between RED verification and existing implementations is explicitly addressed.",
+    "The hide-and-restore procedure is fully described with all 4 steps, decision trees, and safety measures.",
+    "Code Writer is correctly identified as a potential NO-OP in coverage mode when characterization tests pass against existing code.",
+    "The three-stage review pipeline runs fully even in coverage mode.",
+    "Report is generated with coverage-specific details."
+  ],
+  "eval_feedback": {
+    "suggestions": [
+      "The trace describes the hide-and-restore procedure in detail but only for the format-date unit. It would be stronger if at least one other unit also showed the procedure execution or explicitly stated 'same procedure applies'.",
+      "The report template at Step 10a uses placeholder brackets for test counts and statuses rather than concrete values. A real execution trace should have actual numbers.",
+      "The trace correctly notes that state should track when a hide operation is in progress (safety measure), but does not show the actual state file updates during the hide-and-restore procedure."
+    ],
+    "overall": "All 7 assertions pass. The coverage-mode trace is thorough in its treatment of the critical Mode 2 adaptation -- the hide-and-restore RED verification procedure. It correctly handles the tension between standard RED (tests must fail) and coverage mode (tests should pass against existing code) by introducing an intermediate verification step. The three-stage review pipeline and report generation are also correctly described."
+  }
+}

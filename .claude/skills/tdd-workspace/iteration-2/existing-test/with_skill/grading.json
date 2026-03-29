@@ -1,0 +1,88 @@
+{
+  "expectations": [
+    {
+      "text": "Detects that the user provided an existing test file (entry point mode 3)",
+      "passed": true,
+      "evidence": "Trace Step 2 explicitly identifies Mode 3 via the phrase 'implement against src/__tests__/calculator.test.ts' matching the SKILL.md line 102 trigger: 'User says \"implement against this test...\" or provides a failing test file'. The trace sets entryPoint = 'user-provided-test' in state. The summary confirms: 'The phrase \"implement against\" combined with a test file path triggers Mode 3 (User-Provided Test) per SKILL.md line 103.' This matches the actual SKILL.md line 102-103 which defines Mode 3."
+    },
+    {
+      "text": "Skips the Test Writer phase — does NOT rewrite or replace the user's test file",
+      "passed": true,
+      "evidence": "Trace Step 3b states: 'SKILL.md line 114: Mode 3 skips \"Test Writer phase entirely.\" The Test Writer agent (defined in reference/test-writer-prompt.md) is never spawned. No teammate prompt is constructed.' Verified against actual SKILL.md line 113-114 which reads: 'Mode 3 (User-Provided Test) skips: - Test Writer phase entirely'. The summary table confirms 'Test Writer | SKIPPED | Mode 3: user-provided test'. The trace proceeds directly from framework detection to Code Writer with no Test Writer step."
+    },
+    {
+      "text": "Reads the existing test file from disk and passes contents to the Code Writer",
+      "passed": true,
+      "evidence": "Trace Step 9 explicitly states: 'The orchestrator reads the test file contents FROM DISK: Read file: src/__tests__/calculator.test.ts'. The Code Writer prompt template shows '<contents of src/__tests__/calculator.test.ts read from disk>'. The information barrier checklist at the end of Step 9 confirms: '[x] Prompt contains test file contents read from DISK (not from any previous agent output)'. This aligns with SKILL.md lines 304-305: 'The Code Writer prompt must contain ONLY: - The test file contents (read from disk, not from Test Writer output)'."
+    },
+    {
+      "text": "Still performs GREEN verification (checksum check, all tests pass)",
+      "passed": true,
+      "evidence": "Trace Step 10 is titled 'GREEN Verification (Phase 4, Step 4d) — RUNS FULLY' and states: 'GREEN verification is NOT skipped in Mode 3.' It details all four GREEN checks: (1) test file checksum comparison against stored checksums, (2) skip/focus marker grep, (3) all-tests-pass execution, (4) hardcoded return heuristic. The trace also includes Step 8 which records checksums before the Code Writer runs, establishing the baseline for GREEN Check 1. This is consistent with SKILL.md lines 319-327 and anti-cheat.md lines 165-228 which define GREEN verification with no Mode 3 exemption."
+    },
+    {
+      "text": "Still performs adversarial review on the test+implementation pair",
+      "passed": true,
+      "evidence": "Trace Step 12 describes the full adversarial review process: 'The Adversarial Reviewer teammate is spawned with: spec-contract, test file contents, implementation file contents, and the scoring rubric.' It lists all 5 evaluation categories (Test Completeness, Test Quality, Implementation Quality, Cheating Detection, Coverage Gaps) and the 5 anti-patterns from testing-anti-patterns.md. The summary table confirms 'Adversarial Review | Full 5-category review with cheating detection and anti-pattern scanning'. SKILL.md lines 351-372 confirm adversarial review has no Mode 3 exemption."
+    },
+    {
+      "text": "Does NOT ask the user to confirm a work decomposition plan for a single provided test",
+      "passed": true,
+      "evidence": "Trace Step 6 states: 'In Mode 3, the user provided exactly one test file. The decomposition is trivial: Single work unit.' It then explicitly addresses confirmation: 'No confirmation dialog for a single test file: The SKILL.md lines 203-229 show the confirmation flow with a multi-unit work plan. With a single test file in Mode 3, there is no meaningful decomposition to confirm — the user already specified exactly what to implement. The \"Proceed? [confirm/modify/cancel]\" dialog would be redundant noise for a single file the user explicitly named.' However, this is an inference by the trace author, not an explicit rule in SKILL.md — SKILL.md lines 201-232 show the confirmation flow without a documented exception for single-unit cases. The behavior is reasonable but the justification relies on interpretation rather than explicit skill text."
+    }
+  ],
+  "summary": {
+    "passed": 6,
+    "failed": 0,
+    "total": 6,
+    "pass_rate": 1.0
+  },
+  "claims": [
+    {
+      "claim": "SKILL.md line 132 is the skip condition for Mode 3 design gate",
+      "verified": false,
+      "detail": "The trace (Step 3a) and summary table both cite 'SKILL.md line 132' as the Mode 3 design gate skip condition. However, actual line 132 reads: 'Existing codebase coverage mode (entry point mode 2) — unless --design is explicitly passed'. Mode 3 ('User-provided failing test (entry point mode 3)') is on line 133. This is an off-by-one error in the line reference, repeated in the summary."
+    },
+    {
+      "claim": "SKILL.md line 103 defines Mode 3",
+      "verified": false,
+      "detail": "The summary cites 'SKILL.md line 103' for Mode 3. Actual line 103 is blank. Mode 3 is defined on line 102: '3. **User-provided test**: User says \"implement against this test...\" or provides a failing test file — skip Test Writer, go directly to Code Writer'. The numbered list for entry point modes runs from lines 100-102."
+    },
+    {
+      "claim": "Information barrier is maintained because no Test Writer ran",
+      "verified": true,
+      "detail": "The trace correctly notes that in Mode 3, the information barrier is naturally strong since no Test Writer agent was spawned. The Code Writer receives only test file contents read from disk. This aligns with SKILL.md lines 304-316."
+    },
+    {
+      "claim": "Checksums are recorded even when RED verification is skipped",
+      "verified": true,
+      "detail": "Trace Step 8 correctly identifies that checksums must be recorded before spawning the Code Writer, even though RED verification is skipped. SKILL.md line 298 states 'Record checksums of all test files at this point (for GREEN verification later)' which is under the RED verification section but applies to all modes that proceed to Code Writer. anti-cheat.md lines 110-117 confirm checksum recording."
+    },
+    {
+      "claim": "Spec Compliance Review runs before Adversarial Review",
+      "verified": true,
+      "detail": "Trace Steps 11 and 12 run in the correct order. The trace explicitly cites SKILL.md lines 347-349 ORDERING RULE. Verified against actual SKILL.md line 349: 'Spec compliance MUST pass before adversarial review runs.'"
+    },
+    {
+      "claim": "anti-cheat.md lines 290-291 confirm Mode 3 RED skip",
+      "verified": false,
+      "detail": "The trace (Step 3c) cites 'anti-cheat.md lines 290-291' for Mode 3 skip confirmation. The actual anti-cheat.md file is only 272 lines long. The Mode 3 RED skip is actually referenced in SKILL.md line 290 which reads: '**Mode 3 (User-Provided Test)**: Skip RED verification entirely.' The trace confused the file source — the cited text exists in SKILL.md, not anti-cheat.md."
+    },
+    {
+      "claim": "The work decomposition confirmation is skipped for single-unit Mode 3",
+      "verified": "partially",
+      "detail": "The trace infers that a single test file does not require the confirmation dialog from SKILL.md lines 203-229. This is reasonable behavior but SKILL.md does not explicitly exempt single-unit decompositions from confirmation. The confirmation flow (lines 201-232) says 'Present the decomposition to the user' and 'Wait for user confirmation before proceeding' without a carve-out for single units. The trace's reasoning is sensible UX but is an interpretation, not a documented rule."
+    }
+  ],
+  "eval_feedback": {
+    "suggestions": [
+      "The trace is a simulated/analytical walkthrough rather than an actual execution trace. It describes what SHOULD happen by reading the skill definition, not what DID happen when real code ran. There is no actual test file on disk, no real test runner output, no real checksum recorded. This limits the eval's ability to verify runtime behavior — it only verifies that the trace author understood the skill's control flow.",
+      "Several SKILL.md line references are off by one or cite the wrong file. Line 132 is Mode 2, not Mode 3 (should be 133). Line 103 is blank (Mode 3 is line 102). anti-cheat.md lines 290-291 do not exist (the file is 272 lines; the cited text is in SKILL.md). Future evals should verify line references against the actual source or avoid citing specific line numbers.",
+      "The eval does not test what happens when the test file does NOT exist at the provided path. Mode 3 assumes the file is on disk, but there is no error handling trace for missing files. A negative test case (e.g., '/tdd implement against src/__tests__/nonexistent.test.ts') would strengthen the eval.",
+      "The assertion about skipping confirmation for single-unit decomposition (expectation 6) relies on inference rather than explicit skill text. SKILL.md does not document a single-unit exemption from confirmation. The eval should either (a) note this as an interpretation gap in the skill definition, or (b) add the exemption to the skill explicitly if it is intended behavior.",
+      "Timing data (156.5 seconds, 42625 tokens) is recorded but the eval never uses it. Consider adding a timing expectation or budget threshold to make this data actionable.",
+      "The trace describes Spec Compliance Review (Step 11) but the original expectations do not test for it. Since it runs in Mode 3 and sits between GREEN verification and adversarial review, it would be worth adding as an explicit expectation to ensure the ordering rule is honored."
+    ],
+    "overall": "All 6 expectations pass. The trace demonstrates thorough understanding of the Mode 3 control flow: entry point detection, Test Writer skip, disk-based file reading for Code Writer, GREEN verification including checksum checks, adversarial review, and no unnecessary confirmation dialog. However, the trace is analytical (a walkthrough of what the skill says) rather than empirical (actual execution output). Several line-number citations are inaccurate (off-by-one errors, wrong source file). The eval would be stronger with (a) an actual runtime execution to verify, (b) corrected line references, and (c) negative test cases for error paths."
+  }
+}

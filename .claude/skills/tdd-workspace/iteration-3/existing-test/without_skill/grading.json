@@ -1,0 +1,58 @@
+{
+  "expectations": [
+    {
+      "text": "Detects that the user provided an existing test file (entry point mode 3)",
+      "passed": false,
+      "evidence": "Trace explicitly states: 'Default Claude Code has no concept of modes. It just reads the file and writes code.' and 'Detect this as \"entry point mode 3\" (user-provided test) -- it has no mode concept' under 'What Claude Code would NOT do'. Summary confirms: 'FAIL -- no mode concept'. The baseline treats the prompt as a generic natural-language instruction with no structured mode detection."
+    },
+    {
+      "text": "Skips the Test Writer phase -- does NOT rewrite or replace the user's test file",
+      "passed": false,
+      "evidence": "Trace rates this PARTIAL: 'Claude Code would not proactively rewrite the tests, but it has no hard protection against modifying them under pressure.' Specifically, the trace warns Claude Code may 'Adjust assertions it believes are \"incorrect\"', 'Change import paths', 'Add .skip or .todo to problematic tests', or 'Rewrite test descriptions' if the implementation proves difficult. There is no Test Writer agent to skip (vacuously true), but the key protection -- treating the user's test file as an immutable contract -- is absent. The lack of checksum enforcement or skip-marker detection means test file integrity is not guaranteed. Graded FAIL because the assertion requires the test file to be reliably preserved, not merely likely preserved."
+    },
+    {
+      "text": "Reads the existing test file from disk and passes contents to the Code Writer",
+      "passed": false,
+      "evidence": "Trace confirms the file is read: 'Claude Code WOULD read the test file. When a user references a specific file path, Claude Code reliably reads it.' However, the assertion implies the TDD skill's architecture: a separate Code Writer agent receiving the test contents through an information barrier. The trace states: 'there is no separate Code Writer agent and no information barrier. The same context that reads the tests also writes the implementation.' Summary confirms: 'PARTIAL -- reads file, but no separate agent'. Graded FAIL because the pass-to-Code-Writer component is entirely absent; reading the file alone does not satisfy the structured handoff this assertion describes."
+    },
+    {
+      "text": "Still performs GREEN verification (checksum check, all tests pass)",
+      "passed": false,
+      "evidence": "Trace states: 'No checksum verification whatsoever. If the test file was modified, nobody would notice.' For test execution: 'Claude Code would LIKELY run the tests after writing the implementation' but 'this is NOT guaranteed' -- it may 'Skip running tests if it judges the implementation to be obviously correct' or 'Say \"the tests should pass now\" without actually running them.' The trace also notes 'No check for newly added skip/ignore markers in tests.' Summary confirms: 'FAIL -- no checksum; test run likely but not enforced'. Both components of GREEN verification (checksum integrity and mandatory test pass) are absent or unreliable."
+    },
+    {
+      "text": "Still performs adversarial review on the test+implementation pair",
+      "passed": false,
+      "evidence": "Trace is unambiguous: 'Default Claude Code performs no independent review. The same agent that wrote the code would need to critique it -- a fundamental conflict of interest. No anti-pattern detection, no scoring rubric, no structured review output.' Summary confirms: 'FAIL -- no independent review'. There is no separate reviewer agent, no edge-case analysis, no cheating detection, and no structured evaluation of the test+implementation pair."
+    },
+    {
+      "text": "Does NOT ask the user to confirm a work decomposition plan for a single provided test",
+      "passed": true,
+      "evidence": "Trace states: 'Default Claude Code would also not ask for a work decomposition plan because it has no concept of work decomposition. It would just start implementing. This is coincidentally correct behavior for this assertion.' Summary confirms: 'PASS -- coincidentally correct'. The baseline proceeds directly to implementation without prompting for plan confirmation, satisfying the assertion even though the reason differs from the TDD skill's intentional design."
+    }
+  ],
+  "summary": {
+    "passed": 1,
+    "failed": 5,
+    "total": 6,
+    "pass_rate": 0.167
+  },
+  "claims": [
+    "Default Claude Code has no concept of entry point modes; it treats all prompts as generic natural-language instructions.",
+    "The test file is read reliably, but there is no structural protection (checksum, immutability contract) against modifying it.",
+    "There is no information barrier between test reading and code writing -- the same context handles both.",
+    "Test execution after implementation is probable but not mandatory or enforced.",
+    "No independent adversarial review exists; the implementing agent would have to self-critique.",
+    "The baseline coincidentally avoids asking for work decomposition confirmation because it has no decomposition concept at all.",
+    "Baseline execution used 28,335 tokens and completed in 99.4 seconds."
+  ],
+  "eval_feedback": {
+    "suggestions": [
+      "Assertion 2 (skip Test Writer) and assertion 3 (pass to Code Writer) both received PARTIAL ratings in the trace, which means the baseline gets some credit for adjacent behavior. Consider splitting these into sub-assertions: one for the vacuously-correct part (no test rewriting in the happy path) and one for the structural guarantee (immutability enforcement, information barrier).",
+      "Assertion 4 (GREEN verification) bundles two distinct checks: checksum integrity and test execution. The baseline fails completely on checksums but partially satisfies test execution. Separating these would provide more granular signal.",
+      "The trace is a predicted/simulated execution rather than an actual observed run. For higher-confidence grading, consider capturing a real execution trace where Claude Code handles this prompt against an actual test file, then verifying whether it modified the test file, ran the tests, and produced correct output.",
+      "The 'coincidentally correct' pass on assertion 6 is fragile -- for more complex prompts or multi-file scenarios, baseline Claude Code might start asking clarifying questions that resemble plan confirmation. Consider testing with edge cases."
+    ],
+    "overall": "The baseline passes 1 of 6 assertions (16.7% pass rate). Default Claude Code handles the surface-level workflow (read tests, write code, probably verify) but lacks every structural guarantee the TDD skill provides for the existing-test scenario: no mode detection, no test file integrity protection, no information barrier, no mandatory verification, and no independent review. The single pass is coincidental rather than by design. This represents a strong differentiation point for the TDD skill."
+  }
+}

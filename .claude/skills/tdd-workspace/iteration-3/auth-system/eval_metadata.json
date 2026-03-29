@@ -1,0 +1,15 @@
+{
+  "eval_id": 2,
+  "eval_name": "auth-system",
+  "prompt": "/tdd build a user authentication system with registration (email validation, password hashing, duplicate detection), login (JWT tokens, failed attempt tracking), and password reset (token generation, expiry, email notification)",
+  "assertions": [
+    {"text": "Triggers the design gate (Phase 0) — asks clarifying questions about the auth system before decomposing", "type": "behavioral"},
+    {"text": "Produces a design summary with components, data flow, and key decisions before proceeding", "type": "output"},
+    {"text": "Decomposes into at least 3 work units (registration, login, password-reset or similar)", "type": "behavioral"},
+    {"text": "Identifies dependencies between units (login depends on registration, password-reset depends on registration)", "type": "behavioral"},
+    {"text": "Respects dependency order — implements registration before login and password-reset", "type": "ordering"},
+    {"text": "Each work unit goes through the full RED→GREEN→review cycle independently", "type": "completeness"},
+    {"text": "Runs a final integration test across all units after individual completion", "type": "verification"},
+    {"text": "The report shows all work units with their individual phase statuses", "type": "output"}
+  ]
+}

@@ -5,7 +5,8 @@ description: >
   test-first agent pairs with anti-cheat guardrails. Use when: (1) user invokes
   /tdd command, (2) user says "implement X with tests" or "TDD" or "test-driven",
   (3) adding test coverage to existing code with TDD approach, (4) implementing
-  against a user-provided failing test. Requires CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1.
+  against a user-provided failing test, (5) executing an implementation plan with
+  mixed code and non-code tasks. Requires CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1.
 ---
 
 # Agentic TDD
@@ -54,6 +55,7 @@ Load configuration in priority order:
    antiCheat.maxMockDepth: 2
    antiCheat.flagPrivateMethodTests: true
    execution.maxParallelPairs: 3
+   execution.parallelMode: "auto"
    execution.skipFailedAfterRetries: false
    execution.modelStrategy: "auto"
    reporting.generateReport: true
@@ -71,17 +73,18 @@ The `execution.modelStrategy` key controls how agents are assigned to work units
 | `"fast"` | Use the cheapest capable model for all agents |
 | `"capable"` | Use the most capable model for all agents |
 
-When `"auto"` is selected, assess each work unit:
-- **Simple** (1-2 files, clear spec, no external deps): use `haiku` for Test Writer and Code Writer, `sonnet` for reviewer
-- **Standard** (multi-file, some integration): use `sonnet` for all agents
-- **Complex** (architecture-sensitive, many deps, ambiguous spec): use `opus` for Test Writer and reviewer, `sonnet` for Code Writer
+When `"auto"` is selected, use the least powerful model that can handle each role. More capable models are slower and more expensive — use them only when the task demands it.
+
+**Mechanical tasks** (isolated functions, clear spec, 1-2 files): use `haiku` for Test Writer and Code Writer, `sonnet` for reviewers. Most implementation tasks are mechanical when the spec-contract is well-written.
+
+**Integration tasks** (multi-file coordination, pattern matching, cross-unit concerns): use `sonnet` for all agents.
+
+**Architecture and judgment tasks** (ambiguous spec, many dependencies, design-sensitive): use `opus` for Test Writer and reviewers, `sonnet` for Code Writer.
 
 Complexity signals:
-- Number of files involved
-- External dependencies or integrations
-- Ambiguity in the spec-contract
-- Number of edge cases identified
-- Cross-unit dependencies
+- Touches 1-2 files with a complete spec → cheap model
+- Touches multiple files with integration concerns → standard model
+- Requires design judgment or broad codebase understanding → most capable model
 
 The model assignment is recorded in the state file per work unit and displayed in the report.
 
@@ -100,6 +103,7 @@ Determine the mode based on context:
 1. **Natural language spec** (default): User provides a description like "implement user authentication with registration and login"
 2. **Existing codebase**: User says "add tests to..." or "add test coverage for..." — generate characterization tests first, then new feature tests
 3. **User-provided test**: User says "implement against this test..." or provides a failing test file — skip Test Writer, go directly to Code Writer
+4. **Plan execution**: User says "execute plan..." or provides a plan file — extract tasks, classify each as code (TDD pipeline) or non-code (implementer dispatch), and execute
 
 ### Mode-Specific Adaptations
 
@@ -114,6 +118,16 @@ Determine the mode based on context:
 - Test Writer phase entirely
 - RED verification (user owns the tests; trust their quality)
 - Design gate
+
+**Mode 4 (Plan Execution)** requires special handling:
+- **Task extraction**: Read the plan file, extract all tasks with full text and context. Do NOT make subagents read the plan file — provide the full task text inline.
+- **Task classification**: For each task, determine if it is a **code task** (needs implementation + tests) or a **non-code task** (migrations, configs, docs, scripts, infra).
+  - Code tasks → full TDD pipeline (Test Writer → RED → Code Writer → GREEN → Review)
+  - Non-code tasks → implementer dispatch (Implementer → Spec Compliance → Code Quality Review)
+- **Dependency ordering**: Respect dependencies from the plan. Tasks that depend on prior tasks run after them.
+- **Design gate**: Skip by default (plan already embodies design decisions). Only trigger if `--design` is passed.
+- **Implementer subagent**: Read `reference/implementer-prompt.md` for the template. Non-code tasks are dispatched to an implementer subagent that implements, tests, commits, and self-reviews.
+- **Status handling**: All subagents (Test Writer, Code Writer, Implementer) report status. See "Subagent Status Protocol" below.
 
 ## Phase 0: Design Gate (Optional)
 
@@ -140,9 +154,10 @@ Skip when:
    - "Should registration send a verification email, or are accounts active immediately?"
    - "What should happen if login fails 5 times — lockout, CAPTCHA, or nothing?"
 
-2. **Propose approaches** (when there are genuine trade-offs): Present 2-3 options with pros/cons. Example:
+2. **Propose approaches**: Present 2-3 options with pros/cons for at least one key architectural decision. Every spec complex enough to trigger the design gate has at least one meaningful trade-off. Example:
    - "Option A: JWT tokens (stateless, scalable, but can't revoke)"
    - "Option B: Session-based auth (revocable, but needs session store)"
+   If the trade-offs are straightforward, keep this brief — but do not skip it entirely.
 
 3. **Design summary**: Once clarified, present a brief design document:
    ```
@@ -186,9 +201,10 @@ Analyze the specification and decompose into independent work units.
 For each work unit, produce:
 - **id**: kebab-case identifier (e.g., `user-registration`)
 - **name**: human-readable name
+- **type**: `"code"` (needs TDD pipeline) or `"task"` (non-code, uses implementer dispatch). In Modes 1-3, all units are `"code"`. In Mode 4, classify based on whether the task produces code that needs tests.
 - **spec-contract**: precise description of what this unit must do — inputs, outputs, side effects, error cases
 - **dependsOn**: list of work unit IDs this depends on (empty if independent)
-- **testFiles**: target test file paths
+- **testFiles**: target test file paths (code units only)
 - **implFiles**: target implementation file paths
 
 ### Dependency Analysis
@@ -207,24 +223,71 @@ Present the decomposition to the user:
 
 Framework: vitest (auto-detected)
 Mode: natural-language-spec
+Parallel: auto (max 3 concurrent)
 Work units: 3
 
-### Unit 1: user-registration
+### Unit 1: user-registration [code]
 Spec: Create user with email validation, password hashing, and duplicate detection
 Files: src/__tests__/user-registration.test.ts → src/user-registration.ts
 Dependencies: none
 
-### Unit 2: user-login
+### Unit 2: user-login [code]
 Spec: Authenticate user with email/password, return JWT token, handle invalid credentials
 Files: src/__tests__/user-login.test.ts → src/user-login.ts
 Dependencies: [user-registration]
 
-### Unit 3: password-reset
+### Unit 3: password-reset [code]
 Spec: Generate reset token, validate token, update password
 Files: src/__tests__/password-reset.test.ts → src/password-reset.ts
 Dependencies: [user-registration]
 
-Execution plan: Unit 1 first (dependency), then Units 2 and 3 in parallel.
+Execution plan:
+  Batch 1: user-registration
+  Batch 2 (parallel): user-login, password-reset
+
+Proceed? [confirm/modify/cancel]
+```
+
+For Mode 4 (plan execution), the plan may include mixed types:
+
+```
+## TDD Work Plan
+
+Framework: vitest (auto-detected)
+Mode: plan-execution
+Parallel: auto (max 3 concurrent)
+Work units: 5 (3 code, 2 task)
+
+### Unit 1: database-schema [task]
+Spec: Create migration for users and sessions tables
+Files: migrations/001_create_users.sql
+Dependencies: none
+
+### Unit 2: user-registration [code]
+Spec: Create user with email validation, password hashing
+Files: src/__tests__/user-registration.test.ts → src/user-registration.ts
+Dependencies: [database-schema]
+
+### Unit 3: env-config [task]
+Spec: Set up environment config with JWT secret and DB connection
+Files: src/config.ts, .env.example
+Dependencies: none
+
+### Unit 4: user-login [code]
+Spec: Authenticate user, return JWT token
+Files: src/__tests__/user-login.test.ts → src/user-login.ts
+Dependencies: [user-registration, env-config]
+
+### Unit 5: api-docs [task]
+Spec: Generate OpenAPI spec for auth endpoints
+Files: docs/openapi.yaml
+Dependencies: [user-registration, user-login]
+
+Execution plan:
+  Batch 1 (parallel): database-schema, env-config
+  Batch 2: user-registration
+  Batch 3: user-login
+  Batch 4: api-docs
 
 Proceed? [confirm/modify/cancel]
 ```
@@ -369,14 +432,96 @@ Also reference `reference/testing-anti-patterns.md` — flag any of the 5 docume
 
 If the reviewer finds critical issues: log findings, send the pair back for revision (Test Writer re-writes tests addressing the gaps, then Code Writer re-implements).
 
-If the reviewer passes: mark work unit as completed in state file.
+If the reviewer passes: proceed to code quality review.
+
+#### Step 4g: Code Quality Review
+
+Read `reference/code-quality-reviewer-prompt.md` for the full template.
+
+Spawn a Code Quality Reviewer teammate with:
+- The implementation file contents (read from disk)
+- The test file contents (read from disk)
+- The git diff for this work unit (changes since before the unit started)
+
+The reviewer checks:
+1. Each file has one clear responsibility with a well-defined interface
+2. Units are decomposed so they can be understood and tested independently
+3. Names are clear and accurate (match what things do, not how they work)
+4. No overbuilding — implementation does what the spec requires, nothing more
+5. Code follows existing project patterns and conventions
+
+If the reviewer finds **critical or important** issues: send back to Code Writer for fixes, then re-review.
+
+If approved: mark work unit as completed in state file.
+
+**ORDERING RULE**: Spec compliance → Adversarial review → Code quality. Each stage must pass before the next runs.
+
+#### Step 4h: Non-Code Task Dispatch (Mode 4 Only)
+
+For non-code tasks in plan execution mode, skip the TDD pipeline entirely. Instead:
+
+1. Read `reference/implementer-prompt.md` for the template.
+2. Spawn an Implementer teammate with:
+   - The full task text from the plan (pasted inline, NOT a file reference)
+   - Context about where this task fits in the overall plan
+   - Working directory
+3. Handle the implementer's status (see "Subagent Status Protocol" below).
+4. If DONE or DONE_WITH_CONCERNS: proceed to spec compliance review (Step 4e), then code quality review (Step 4g). Skip adversarial review (it's TDD-specific).
+5. If NEEDS_CONTEXT: provide the missing context and re-dispatch.
+6. If BLOCKED: assess and either provide context, re-dispatch with a more capable model, break the task down, or escalate to the user.
+
+### Subagent Status Protocol
+
+All subagents (Test Writer, Code Writer, Implementer) report one of four statuses:
+
+| Status | Meaning | Action |
+|--------|---------|--------|
+| **DONE** | Work complete, no concerns | Proceed to next phase |
+| **DONE_WITH_CONCERNS** | Work complete, but doubts flagged | Read concerns before proceeding. If about correctness/scope, address first. If observations, note and proceed. |
+| **NEEDS_CONTEXT** | Cannot proceed without information | Provide the missing context and re-dispatch |
+| **BLOCKED** | Cannot complete the task | Assess: (1) context problem → provide more context, (2) reasoning limit → re-dispatch with more capable model, (3) task too large → break into smaller pieces, (4) plan is wrong → escalate to user |
+
+**Never** ignore an escalation or force the same subagent to retry without changes. If a subagent says it's stuck, something needs to change.
 
 ### Parallel Execution
 
-When the dependency graph allows parallel execution:
-- Spawn multiple Test Writers simultaneously (up to `maxParallelPairs`)
-- As each Test Writer completes, proceed with its RED → Code Writer → GREEN → Review pipeline independently
-- Track all concurrent pipelines in the state file
+The skill builds a dependency graph from the work units and executes independent units concurrently. This applies to both TDD work units and non-code tasks in Mode 4.
+
+#### Dependency Graph
+
+Compute the execution order from the `dependsOn` fields:
+
+1. **Topological sort**: Order units so dependencies complete before dependents.
+2. **Identify parallel batches**: Group units that share no dependencies into concurrent batches.
+   - Batch 1: all units with no dependencies (roots)
+   - Batch 2: units whose dependencies are all in Batch 1
+   - And so on until all units are scheduled.
+3. **Present the execution plan** to the user in the work plan confirmation:
+   ```
+   Execution plan:
+     Batch 1 (parallel): user-registration, config-setup
+     Batch 2 (parallel): user-login, password-reset  [after: user-registration]
+     Batch 3: integration-tests                       [after: user-login, password-reset]
+   ```
+
+#### Concurrent Dispatch
+
+Within each batch, spawn agent teams concurrently (up to `maxParallelPairs`):
+- **TDD units**: Spawn Test Writers simultaneously. As each completes, proceed with its RED → Code Writer → GREEN → Review pipeline independently.
+- **Non-code tasks** (Mode 4): Spawn Implementer subagents simultaneously. As each completes, proceed with its Spec Compliance → Code Quality review pipeline.
+- **Mixed batches**: TDD and non-code tasks in the same batch run concurrently — each follows its own pipeline.
+- Track all concurrent pipelines in the state file.
+
+Wait for ALL units in a batch to complete (including reviews) before starting the next batch.
+
+#### Configuration
+
+| Key | Default | Description |
+|-----|---------|-------------|
+| `execution.maxParallelPairs` | `3` | Max concurrent agent teams per batch |
+| `execution.parallelMode` | `"auto"` | `"auto"`: parallel when dependency graph allows. `"sequential"`: one unit at a time (useful for debugging or resource-constrained environments). `"parallel"`: force parallel even within dependency levels. |
+
+When `parallelMode` is `"sequential"`, process units one at a time in topological order. This is slower but avoids file conflicts and reduces concurrent API load.
 
 ## Phase 5: Final Review — Verification Before Completion
 

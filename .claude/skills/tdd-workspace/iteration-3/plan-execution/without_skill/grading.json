@@ -1,0 +1,68 @@
+{
+  "expectations": [
+    {
+      "text": "Detects entry point mode 4 (plan execution)",
+      "passed": false,
+      "evidence": "No mode detection system exists. The trace states: 'No mode detection system; treats `/tdd execute` as natural language.' Claude treats the entire prompt as a natural language request and has no concept of entry point modes."
+    },
+    {
+      "text": "Classifies tasks into code (registration, login) and non-code (migration, config, docs) types",
+      "passed": false,
+      "evidence": "The trace explicitly states: 'No formal classification. Claude Code does not distinguish \"code task\" from \"non-code task\" as a routing decision.' All 5 tasks are handled identically by a single agent using the same approach."
+    },
+    {
+      "text": "Routes code tasks through the full TDD pipeline (Test Writer -> RED -> Code Writer -> GREEN -> Review)",
+      "passed": false,
+      "evidence": "Code tasks (registration, login) are implemented code-first with tests written afterward. The trace states: 'No. Claude writes the registration endpoint with email validation logic, then writes tests afterward.' No Test Writer agent, no RED verification, no Code Writer behind an information barrier, no review stage."
+    },
+    {
+      "text": "Routes non-code tasks through implementer dispatch (Implementer -> Spec Compliance -> Code Quality)",
+      "passed": false,
+      "evidence": "Non-code tasks (migration, config, docs) are written directly with no review pipeline. The trace states: 'No implementer dispatch; non-code tasks written directly with no review.' No Spec Compliance or Code Quality reviewers are invoked."
+    },
+    {
+      "text": "Respects dependency ordering -- migration before registration, registration before login, config before login, both before docs",
+      "passed": false,
+      "evidence": "Critical dependency violation: Task 3 (login with JWT) executes before Task 4 (environment config for JWT_SECRET). The trace shows execution order 1,2,3,4,5 which violates the constraint that config (Task 4) must precede login (Task 3). The trace states: 'Task 3 is executed before Task 4 (dependency violation -- login depends on config).' Other dependencies are satisfied only accidentally by sequential plan-file ordering, not by formal dependency resolution."
+    },
+    {
+      "text": "Presents a work plan showing task types and execution batches before proceeding",
+      "passed": false,
+      "evidence": "The trace states: 'No work plan presented; jumps straight to execution.' Claude begins executing tasks immediately after reading the plan file. No preview of task classifications, batch ordering, or dependency graph is shown to the user."
+    },
+    {
+      "text": "Applies the subagent status protocol (DONE/DONE_WITH_CONCERNS/NEEDS_CONTEXT/BLOCKED) to all agents",
+      "passed": false,
+      "evidence": "The trace states: 'No status protocol; tasks complete silently.' No DONE, DONE_WITH_CONCERNS, NEEDS_CONTEXT, or BLOCKED signals are emitted. Problems are silently worked around and concerns are not flagged."
+    },
+    {
+      "text": "Runs a final holistic review across all tasks after individual completion",
+      "passed": false,
+      "evidence": "The trace states: 'No holistic review; only a batch test run at the end.' A single `npx jest --verbose` run occurs at the end, but no cross-cutting review checks consistency between migration schema and registration code, JWT config and login implementation, or API docs and actual endpoints."
+    }
+  ],
+  "summary": {
+    "passed": 0,
+    "failed": 8,
+    "total": 8,
+    "pass_rate": 0.0
+  },
+  "claims": [
+    "Default Claude Code has no entry point mode detection system and treats all prompts as natural language requests.",
+    "No task classification mechanism exists to distinguish code tasks from non-code tasks for routing purposes.",
+    "Code tasks follow a code-first approach with tests written after implementation, not a TDD pipeline.",
+    "Non-code tasks are written directly by the same agent with no implementer dispatch or review stages.",
+    "Dependency ordering is violated: login (Task 3) executes before environment config (Task 4), despite the explicit dependency. Other dependencies are satisfied accidentally by sequential file order.",
+    "No work plan is presented to the user before execution begins.",
+    "No subagent status protocol is used; all tasks complete silently without structured signals.",
+    "No holistic review pass checks cross-task consistency after all tasks complete."
+  ],
+  "eval_feedback": {
+    "suggestions": [
+      "The trace awarded partial credit (0.5/8) for dependency ordering, but the dependency violation on Task 3/Task 4 is unambiguous and consequential. The grading here gives 0/8 because 'accidental ordering' that still violates an explicit dependency does not meet the assertion. Future evals could split this assertion into sub-assertions (e.g., 'migration before registration' separately from 'config before login') to provide finer granularity.",
+      "The eval effectively demonstrates the baseline gap for plan execution. The dependency violation (login before config) is the most concrete and testable failure -- it could be verified by checking file timestamps or tool call order in a real run.",
+      "Consider adding an assertion for 'produces a structured per-task status report at the end' to capture the reporting gap, which is distinct from the holistic review gap."
+    ],
+    "overall": "Baseline scores 0/8. Default Claude Code lacks every capability tested by this eval: mode detection, task classification, pipeline routing, dependency batch computation, work plan presentation, status protocol, and holistic review. The most consequential gap is the dependency violation where login code is written before environment config exists, leading to hardcoded secrets or dangling references. This eval clearly separates baseline from skill-equipped behavior."
+  }
+}

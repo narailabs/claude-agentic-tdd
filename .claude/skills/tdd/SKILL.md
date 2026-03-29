@@ -66,50 +66,64 @@ Load configuration in priority order:
 
 ### Model and Effort Configuration
 
-Each agent is assigned a **model** and a **reasoning effort** level. These are configured together because they interact — more capable models benefit from higher effort, and higher effort on a less capable model can sometimes match a more capable model at lower effort.
+Each agent is assigned a **model** and a **reasoning effort** level. The skill inherits the current session's model and effort as the ceiling, then assigns each agent the appropriate level based on task complexity.
 
-#### Model Strategy
+#### Session Detection
 
-The `execution.modelStrategy` key controls model assignment per work unit:
+At startup, detect the current session's model and effort:
+- If the session is running on **opus with max effort**: the skill can assign opus/max to complex agents and sonnet/high to simpler ones.
+- If the session is running on **sonnet with high effort**: all agents use sonnet/high (no opus available).
+- If the session is running on **opus with high effort**: complex agents get opus/high, simpler ones get sonnet/high.
 
-| Strategy | Behavior |
-|----------|----------|
-| `"auto"` (default) | Assess complexity and assign models accordingly |
-| `"standard"` | Use `sonnet` for all agents |
-| `"capable"` | Use `opus` for all agents |
+The session's model and effort are the upper bound — the skill never escalates beyond what the session provides.
 
-When `"auto"` is selected:
+#### Complexity-Based Assignment
 
-**Mechanical tasks** (isolated functions, clear spec, 1-2 files): use `sonnet` for all agents.
+The skill assesses each work unit's complexity and assigns model + effort accordingly:
 
-**Integration tasks** (multi-file coordination, pattern matching, cross-unit concerns): use `sonnet` for all agents.
+| Complexity | Signals | Model | Effort |
+|-----------|---------|-------|--------|
+| **Mechanical** | Isolated functions, clear spec, 1-2 files | `sonnet` | `high` |
+| **Integration** | Multi-file coordination, cross-unit concerns | `sonnet` | `high` |
+| **Architecture** | Ambiguous spec, many dependencies, design-sensitive | `opus` (if available) | session effort (max if session is max) |
 
-**Architecture and judgment tasks** (ambiguous spec, many dependencies, design-sensitive): use `opus` for Test Writer and reviewers, `sonnet` for Code Writer.
+Within a work unit, different agent roles may get different assignments:
 
-#### Reasoning Effort
+| Role | Mechanical | Integration | Architecture |
+|------|-----------|-------------|--------------|
+| Test Writer | sonnet/high | sonnet/high | opus/session-effort |
+| Code Writer | sonnet/high | sonnet/high | sonnet/high |
+| Spec Compliance Reviewer | sonnet/high | sonnet/high | opus/session-effort |
+| Adversarial Reviewer | sonnet/high | sonnet/high | opus/session-effort |
+| Code Quality Reviewer | sonnet/high | sonnet/high | sonnet/high |
+| Implementer (Mode 4) | sonnet/high | sonnet/high | opus/session-effort |
 
-The `execution.effortLevel` key controls how much reasoning each agent applies. Higher effort means deeper thinking but slower, more expensive responses.
+The reasoning: Test Writers and reviewers benefit most from deep reasoning (writing good behavioral tests, catching cheating, evaluating spec compliance). Code Writers and quality reviewers do more mechanical work (make tests pass, check naming/structure) and don't need the same reasoning depth.
 
-| Level | Behavior | Use When |
-|-------|----------|----------|
-| `"high"` (default) | Deep reasoning for all agents | Most TDD work — tests and implementations benefit from careful thought |
-| `"medium"` | Balanced speed/reasoning | Large batch runs where speed matters more than nuance |
-| `"max"` | Maximum reasoning, no token constraint | Critical code, complex architecture. **Opus only** — if assigned to sonnet agents, falls back to `high`. |
+#### Override with `--effort`
 
-The default is `"high"` because TDD benefits from careful reasoning — writing good behavioral tests and clean implementations is not a mechanical task.
-
-To override per session, pass the `--effort` flag:
+The `--effort` flag overrides the session-inherited effort level:
 ```
 /tdd "build auth system" --effort max
 ```
 
-When `--effort max` is passed:
-- Agents assigned to `opus` run at `max` effort
-- Agents assigned to `sonnet` run at `high` effort (max is opus-only)
+| Flag | Effect |
+|------|--------|
+| `--effort max` | opus agents → max, sonnet agents → high |
+| `--effort high` | All agents → high (default) |
+| `--effort medium` | All agents → medium (faster, less thorough) |
 
-When spawning each agent, set the `effort` field in the subagent prompt or use the session-level effort configuration. The effort level is recorded in the state file per work unit and displayed in the report.
+#### Config Key
 
-The model and effort assignment are recorded in the state file per work unit and displayed in the report.
+`execution.modelStrategy` controls the assignment strategy:
+
+| Strategy | Behavior |
+|----------|----------|
+| `"auto"` (default) | Assess complexity per work unit, assign as described above |
+| `"standard"` | All agents use `sonnet`/`high` regardless of complexity |
+| `"capable"` | All agents use `opus`/session-effort regardless of complexity |
+
+The model and effort assignment per agent are recorded in the state file and displayed in the report.
 
 When loading `.tdd.config.json`, flatten nested keys. Merged config is stored in the state file and passed to all teammates.
 

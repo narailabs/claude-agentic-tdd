@@ -280,6 +280,8 @@ Create an agent team. You (the main session) are the team lead / Team Manager.
 
 ### Execution Loop
 
+**Flow control**: Each unit's pipeline (4a→4g) runs as a continuous flow. Do not pause between steps, do not wait for user input, do not treat status updates as conversational turns. When a subagent completes, immediately proceed to the next step. The user should only be consulted on errors or escalations — not on forward progress.
+
 For each work unit (respecting dependency order and parallelism):
 
 **Unit completion requires ALL of**: Test Writer → RED → Code Writer → GREEN → Spec Compliance → Adversarial → Code Quality. A unit that passes GREEN but skips reviews is NOT complete.
@@ -363,6 +365,8 @@ After the Code Writer completes:
 **After GREEN passes: the unit is NOT complete.** Proceed immediately to the three-stage review pipeline (Steps 4e→4f→4g). Do not mark the unit complete. Do not skip to the next unit.
 
 ### Review Pipeline (MANDATORY — every unit, no exceptions)
+
+Run all three reviews back-to-back without pausing. When one review returns a passing result, immediately spawn the next reviewer in the same turn. Do not output a status message and stop — continue executing.
 
 #### Step 4e: Spec Compliance Review
 

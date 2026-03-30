@@ -24,6 +24,16 @@ Before proceeding, verify:
 
 2. Git repository: the project should be a git repository (for diff checks during GREEN verification). If not, warn but continue.
 
+## Non-Negotiable Requirements
+
+These apply to EVERY run regardless of mode, complexity, or time pressure. Skipping any is a skill failure.
+
+1. **State file**: `.tdd-state.json` MUST be created in Phase 3 and updated after every phase transition.
+2. **Session log**: `tdd-session.jsonl` MUST be initialized in Phase 3 and appended to throughout.
+3. **Three-stage review pipeline**: Every completed unit MUST pass Spec Compliance → Adversarial → Code Quality review (Steps 4e→4f→4g). A unit is NOT complete until all three pass. GREEN verification is the halfway point, not the finish line.
+4. **Report**: `tdd-report.md` MUST be generated in Phase 6 before cleanup.
+5. **RED Check 5**: Behavior-over-implementation scan MUST run on every unit (Modes 1 and 2).
+
 ## Arguments
 
 Parse `$ARGUMENTS` for:
@@ -258,6 +268,12 @@ Read `reference/state-management.md` for the full state file format.
 2. Add `.tdd-state.json`, `tdd-session.jsonl`, and `spec-contract-*.md` to `.gitignore` if not already present
 3. Initialize the session log (`tdd-session.jsonl`)
 
+**HARD GATE**: Phase 4 MUST NOT begin until `.tdd-state.json` and `tdd-session.jsonl` both exist on disk. Verify:
+```bash
+test -f .tdd-state.json && test -f tdd-session.jsonl && echo "READY" || echo "BLOCKED"
+```
+If BLOCKED, create the missing files before proceeding.
+
 ## Phase 4: Agent Team Orchestration
 
 Create an agent team. You (the main session) are the team lead / Team Manager.
@@ -265,6 +281,8 @@ Create an agent team. You (the main session) are the team lead / Team Manager.
 ### Execution Loop
 
 For each work unit (respecting dependency order and parallelism):
+
+**Unit completion requires ALL of**: Test Writer → RED → Code Writer → GREEN → Spec Compliance → Adversarial → Code Quality. A unit that passes GREEN but skips reviews is NOT complete.
 
 #### Step 4a: Spawn Test Writer
 
@@ -308,7 +326,7 @@ See `reference/anti-cheat.md` → "Coverage Mode RED Verification" for the full 
 
 **All modes** — these checks always apply:
 4. **Check assertion density**: Read the test file. Count assertion patterns (`expect(`, `assert`, `.toBe(`, etc.) per test function. Must meet minimum threshold.
-5. **Check behavior-over-implementation**: Scan for anti-patterns (excessive mocking, private method access, implementation-mirroring).
+5. **Check behavior-over-implementation** (MANDATORY — do not skip): Scan for anti-patterns per `reference/anti-cheat.md` Check 5: excessive mocking (mocks > 2× test count), private method access, implementation-mirroring. Flag violations and re-prompt the Test Writer.
 
 If any check fails: log the violation, provide feedback to the Test Writer, re-spawn with correction instructions. After `maxRetries` failures, escalate to user (or skip if `--skip-failed`).
 
@@ -341,6 +359,10 @@ After the Code Writer completes:
 2. **Check for skip markers**: Grep test files for newly added skip/ignore markers (`xit(`, `.skip`, `@pytest.mark.skip`, `t.Skip()`, `@Ignore`, `@Disabled`, `pending(`).
 3. **Run tests**: Execute the test command. ALL tests must pass (exit code == 0).
 4. If tests fail: re-prompt Code Writer with failure output (up to `maxRetries`).
+
+**After GREEN passes: the unit is NOT complete.** Proceed immediately to the three-stage review pipeline (Steps 4e→4f→4g). Do not mark the unit complete. Do not skip to the next unit.
+
+### Review Pipeline (MANDATORY — every unit, no exceptions)
 
 #### Step 4e: Spec Compliance Review
 
@@ -406,9 +428,9 @@ The reviewer checks:
 
 If the reviewer finds **critical or important** issues: send back to Code Writer for fixes, then re-review.
 
-If approved: mark work unit as completed in state file.
+If approved: mark work unit as completed in state file. **This is the ONLY point where a unit may be marked complete.** Update `.tdd-state.json` with review results.
 
-**ORDERING RULE**: Spec compliance → Adversarial review → Code quality. Each stage must pass before the next runs.
+**ORDERING RULE**: Spec compliance → Adversarial review → Code quality. Each stage must pass before the next runs. No exceptions. No skipping.
 
 #### Step 4h: Non-Code Task Dispatch (Mode 4 Only)
 
@@ -498,7 +520,17 @@ Do NOT accept these from any agent (including yourself):
 
 ## Phase 6: Report Generation
 
-Read `reference/report-format.md` for the full templates. Generate `tdd-report.md` (human-readable summary with per-unit phase statuses) and `tdd-session.jsonl` (structured event log).
+**IRON LAW**: No cleanup (Phase 7) without a report. Generate the report BEFORE any cleanup.
+
+Read `reference/report-format.md` for the full templates. Generate:
+1. `tdd-report.md` — human-readable summary with per-unit phase statuses, review findings, and anti-cheat log
+2. Finalize `tdd-session.jsonl` — append `session.complete` event with summary
+
+Verify the report exists:
+```bash
+test -f tdd-report.md && echo "REPORT EXISTS" || echo "REPORT MISSING"
+```
+If REPORT MISSING, generate it before proceeding to Phase 7.
 
 ## Error Handling and Debugging
 
@@ -511,6 +543,13 @@ Key principles:
 - Always attempt team cleanup even on error
 
 ## Phase 7: Cleanup
+
+**Pre-check** — verify all required artifacts before cleanup:
+```bash
+test -f tdd-report.md && echo "report: OK" || echo "report: MISSING"
+test -f .tdd-state.json && echo "state: OK" || echo "state: MISSING"
+```
+If any artifact is MISSING, go back and create it (Phase 6 for report, Phase 3 for state).
 
 1. Clean up the agent team (shut down any remaining teammates)
 2. Remove intermediate artifacts: delete all `spec-contract-*.md` files created during the session

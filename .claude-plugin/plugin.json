@@ -1,7 +1,7 @@
 {
   "name": "agentic-tdd",
-  "description": "Enforced Test-Driven Development with agent teams — honest tests, blind implementation, adversarial review. Decomposes features into test-first pairs with anti-cheat guardrails. Now with plan execution mode, parallel batching, three-stage review, and implementer dispatch for non-code tasks.",
-  "version": "2.2.0",
+  "description": "Enforced Test-Driven Development with agent teams — honest tests, blind implementation, adversarial review. Decomposes features into test-first pairs with anti-cheat guardrails. Structural enforcement gates ensure three-stage review pipeline, state management, and report generation cannot be skipped.",
+  "version": "2.3.0",
   "author": {
     "name": "NarAI Labs",
     "url": "https://github.com/narailabs"

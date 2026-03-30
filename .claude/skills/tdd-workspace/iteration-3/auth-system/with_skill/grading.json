@@ -1,0 +1,49 @@
+{
+  "expectations": [
+    {
+      "text": "Triggers design gate (Phase 0) for multi-feature spec",
+      "passed": true,
+      "evidence": "Phase 0 states: 'The design gate is needed when: 3+ distinct features, external integrations, or ambiguous requirements.' The prompt specifies 3 distinct features (registration, login, password reset), which meets the '3+ distinct features' threshold, so the design gate would be triggered."
+    },
+    {
+      "text": "Decomposes into 3+ work units with dependency ordering",
+      "passed": true,
+      "evidence": "Phase 2 instructs: 'Produce work units, each with: id, name, specContract, unitType, dependsOn: list of unit IDs this depends on, testFiles, implFiles, complexity.' With 3 distinct features (registration, login, password reset), the decomposition would produce at least 3 work units. Phase 4 enforces: 'Process work units respecting dependency order.'"
+    },
+    {
+      "text": "Passes --design-summary to init-state.ts",
+      "passed": true,
+      "evidence": "Phase 3 explicitly states: 'Pass --design-summary \"{summary}\" if Phase 0 ran.' Since the design gate triggers for this 3-feature spec (per A1), Phase 0 would run and produce a design summary, which would then be passed to init-state.ts."
+    },
+    {
+      "text": "Each unit goes through full RED→GREEN→3-review cycle",
+      "passed": true,
+      "evidence": "Phase 4 defines steps 4a-4g for each work unit: Step 4a (Test Writer), Step 4b (RED Verification), Step 4c (Code Writer), Step 4d (GREEN Verification), Step 4e (Spec Compliance Review), Step 4f (Adversarial Review), Step 4g (Code Quality Review). The 'Completing a Unit' section requires: 'After all three reviews pass, mark the unit completed.' This constitutes a full RED→GREEN→3-review cycle."
+    },
+    {
+      "text": "Respects dependency order (registration before login/reset)",
+      "passed": true,
+      "evidence": "Phase 4 states: 'Process work units respecting dependency order. Units whose dependsOn are all completed can run concurrently, up to --parallel concurrent pipelines.' Phase 2 requires each unit to have 'dependsOn: list of unit IDs this depends on'. For this auth system, registration would naturally be a dependency for login and password reset, and the SKILL.md enforces that dependency order is respected."
+    },
+    {
+      "text": "Uses update-state.ts to track each unit's status transitions",
+      "passed": true,
+      "evidence": "Step 4b shows: 'cd {plugin_root} && npx tsx skills/tdd/scripts/update-state.ts --working-dir {user_cwd} --unit-id \"{id}\" --status \"RED_VERIFICATION\" --red-json \"{...}\"'. Step 4d shows the same script with '--status \"GREEN_VERIFICATION\" --green-json \"{...}\"'. The 'Completing a Unit' section shows: 'npx tsx skills/tdd/scripts/update-state.ts --working-dir {user_cwd} --unit-id \"{id}\" --status \"COMPLETED\"'. Status transitions are tracked at each checkpoint."
+    },
+    {
+      "text": "Phase 5 runs full test suite (not per-unit)",
+      "passed": true,
+      "evidence": "Phase 5 step 1 explicitly states: 'Run the full test suite (no specific files): cd {user_cwd} && {testCommand}'. The parenthetical '(no specific files)' makes clear this is the entire test suite, not individual unit tests."
+    },
+    {
+      "text": "Calls check-state.ts and generate-report.ts in Phase 6",
+      "passed": true,
+      "evidence": "Phase 6 shows both script invocations: 'cd {plugin_root} && npx tsx skills/tdd/scripts/check-state.ts --working-dir {user_cwd}' followed by 'cd {plugin_root} && npx tsx skills/tdd/scripts/generate-report.ts --working-dir {user_cwd}'. check-state.ts runs first and generate-report.ts only runs if check-state.ts exits 0."
+    },
+    {
+      "text": "Uses TeamDelete for cleanup in Phase 7",
+      "passed": true,
+      "evidence": "Phase 7 step 1 states: 'Use TeamDelete to shut down the \"tdd-session\" team and all teammates'."
+    }
+  ]
+}

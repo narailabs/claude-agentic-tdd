@@ -1,0 +1,17 @@
+{
+  "eval_id": 1,
+  "eval_name": "simple-utility",
+  "prompt": "/tdd implement a string utility module with functions: capitalize(str), truncate(str, maxLen), and slugify(str)",
+  "assertions": [
+    {"id": "A1", "text": "Calls detect-framework.ts via Bash (not SDK)", "type": "structural"},
+    {"id": "A2", "text": "Presents work decomposition plan and waits for user confirmation", "type": "behavioral"},
+    {"id": "A3", "text": "Calls init-state.ts via Bash with --work-units-json", "type": "structural"},
+    {"id": "A4", "text": "Uses Agent tool (not SDK query) to spawn Test Writer with team_name", "type": "structural"},
+    {"id": "A5", "text": "Calls verify-red.ts via Bash and checks exit code", "type": "structural"},
+    {"id": "A6", "text": "Uses Read tool to read test files from disk for Code Writer (information barrier)", "type": "structural"},
+    {"id": "A7", "text": "Calls verify-green.ts via Bash with --checksums-json from RED result", "type": "structural"},
+    {"id": "A8", "text": "Spawns all 3 reviewers (spec-compliance, adversarial, code-quality) via Agent tool", "type": "structural"},
+    {"id": "A9", "text": "Calls check-state.ts before generate-report.ts", "type": "structural"},
+    {"id": "A10", "text": "No references to Agent SDK, query(), or hooks — pure agent teams + scripts", "type": "negative"}
+  ]
+}

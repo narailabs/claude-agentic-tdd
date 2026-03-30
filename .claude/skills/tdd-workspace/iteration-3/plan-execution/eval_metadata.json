@@ -1,0 +1,16 @@
+{
+  "eval_id": 6,
+  "eval_name": "plan-execution",
+  "prompt": "/tdd execute docs/plan.md — 5 tasks with mixed code/non-code and dependency ordering",
+  "assertions": [
+    {"id": "A1", "text": "Detects entry mode as plan-execution", "type": "behavioral"},
+    {"id": "A2", "text": "Classifies tasks into code and non-code types", "type": "behavioral"},
+    {"id": "A3", "text": "Routes code tasks through full TDD pipeline (RED→GREEN→reviews)", "type": "structural"},
+    {"id": "A4", "text": "Routes non-code tasks through implementer dispatch (spec-compliance + code-quality only)", "type": "structural"},
+    {"id": "A5", "text": "Respects dependency ordering from plan", "type": "behavioral"},
+    {"id": "A6", "text": "Uses eager dispatch (DAG-based, not rigid batches)", "type": "behavioral"},
+    {"id": "A7", "text": "Calls update-state.ts for both code and non-code units", "type": "structural"},
+    {"id": "A8", "text": "Calls check-state.ts before generate-report.ts", "type": "structural"},
+    {"id": "A9", "text": "Phase 5 holistic review covers cross-task integration", "type": "structural"}
+  ]
+}

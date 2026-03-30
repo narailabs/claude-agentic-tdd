@@ -1,0 +1,58 @@
+{
+  "expectations": [
+    {
+      "id": "A1",
+      "text": "Detects entry mode as plan-execution",
+      "passed": true,
+      "evidence": "Phase 1 calls detect-framework.ts with --spec \"{spec}\" which returns {framework, entryMode}. The SKILL.md YAML header (line 8-9) explicitly lists 'executing an implementation plan with mixed code and non-code tasks' as a trigger use case. The entry mode is stored and used in subsequent phases. The detect-framework script is responsible for the actual classification, and the SKILL.md instructs to store and use the result."
+    },
+    {
+      "id": "A2",
+      "text": "Classifies tasks into code and non-code types",
+      "passed": true,
+      "evidence": "Phase 2 (Work Decomposition) explicitly requires each work unit to have 'unitType: \"code\" or \"task\" (non-code work like configs, migrations)' (line 98). The subsequent Phase 4 handles these two types differently."
+    },
+    {
+      "id": "A3",
+      "text": "Routes code tasks through full TDD pipeline (RED→GREEN→reviews)",
+      "passed": true,
+      "evidence": "Steps 4a-4g define the full pipeline for code units: Test Writer (4a) → RED Verification (4b) → Code Writer (4c) → GREEN Verification (4d) → Spec Compliance Review (4e) → Adversarial Review (4f) → Code Quality Review (4g). This is the default path for units with unitType 'code'."
+    },
+    {
+      "id": "A4",
+      "text": "Routes non-code tasks through implementer dispatch (spec-compliance + code-quality only)",
+      "passed": true,
+      "evidence": "The 'Handling Task Units (Non-Code)' section (lines 288-293) explicitly states: 'For units with unitType: \"task\", use the implementer prompt instead of the Test Writer / Code Writer split. Read reference/implementer-prompt.md, fill the template, dispatch a teammate. After completion, run spec compliance review and code quality review (skip adversarial review since there is no test/impl pair to verify).' This exactly matches the assertion."
+    },
+    {
+      "id": "A5",
+      "text": "Respects dependency ordering from plan",
+      "passed": true,
+      "evidence": "Phase 4 states: 'Process work units respecting dependency order. Units whose dependsOn are all completed can run concurrently, up to --parallel concurrent pipelines.' (lines 132-133). Each work unit includes 'dependsOn: list of unit IDs this depends on' (line 100)."
+    },
+    {
+      "id": "A6",
+      "text": "Uses eager dispatch (DAG-based, not rigid batches)",
+      "passed": true,
+      "evidence": "Line 132-133: 'Units whose dependsOn are all completed can run concurrently, up to --parallel concurrent pipelines.' This is DAG-based eager dispatch — a unit starts as soon as its own dependencies are completed, rather than waiting for an entire batch/level to finish. The condition is per-unit ('Units whose dependsOn are all completed') not per-level."
+    },
+    {
+      "id": "A7",
+      "text": "Calls update-state.ts for both code and non-code units",
+      "passed": true,
+      "evidence": "For code units: update-state.ts is called explicitly in Step 4b (RED verification, lines 176-180), Step 4d (GREEN verification, lines 222-227), and in 'Completing a Unit' (lines 276-279). For non-code (task) units: the 'Handling Task Units' section says 'Mark completed when reviews pass' (line 293), which references the 'Completing a Unit' section that calls update-state.ts with --status 'COMPLETED'. Both paths converge on the same completion mechanism."
+    },
+    {
+      "id": "A8",
+      "text": "Calls check-state.ts before generate-report.ts",
+      "passed": true,
+      "evidence": "Phase 6 (lines 318-338) explicitly runs check-state.ts first, checks for exit 0, and only then proceeds to generate-report.ts. The instruction states: 'If exit 1: the output lists violations... Go back and fix them before proceeding. Do not generate a report from inconsistent state.' The ordering is enforced by this conditional gate."
+    },
+    {
+      "id": "A9",
+      "text": "Phase 5 holistic review covers cross-task integration",
+      "passed": true,
+      "evidence": "Phase 5 (lines 305-315) explicitly states its purpose: 'Individual units may pass in isolation but conflict when integrated. The final review catches cross-unit issues.' It runs the full test suite, reads all implementation and test files, and performs 'a holistic spec compliance check: compare the FULL original spec against ALL code produced. Look for requirements that fell through the cracks between unit boundaries.'"
+    }
+  ]
+}

@@ -1,0 +1,34 @@
+{
+  "expectations": [
+    {
+      "text": "Detects entry mode as user-provided-test",
+      "passed": true,
+      "evidence": "Phase 1 (line 77) calls detect-framework.ts with --spec \"{spec}\". The detectEntryMode function in src/detection.ts matches 'implement against' + '.test.' pattern and returns EntryMode.USER_PROVIDED_TEST. SKILL.md line 82 says 'Store the framework info and entry mode for all subsequent phases.'"
+    },
+    {
+      "text": "Skips Test Writer phase — goes straight to RED verification",
+      "passed": true,
+      "evidence": "SKILL.md Entry Mode Branching section (lines 141-143) now explicitly states: '`user-provided-test`: The user already provided a failing test file. **Skip Step 4a (Test Writer)** — go straight to Step 4b (RED verification) using the user's existing test file. The test file is already on disk; read it with the Read tool and use it as-is. All other steps (4b–4g) proceed normally.'"
+    },
+    {
+      "text": "Calls verify-red.ts with --entry-mode user-provided-test",
+      "passed": true,
+      "evidence": "Step 4b (lines 162-167) shows the verify-red.ts invocation includes '--entry-mode \"{mode}\"' where {mode} is the stored entry mode from Phase 1. Since detection returns 'user-provided-test' for this prompt, the script would receive --entry-mode user-provided-test."
+    },
+    {
+      "text": "Reads existing test file from disk for Code Writer (information barrier)",
+      "passed": true,
+      "evidence": "Step 4c (lines 188-189) explicitly states: 'Use the Read tool to read the test files from disk' and 'Use the Read tool to read spec-contract-{unit.id}.md from disk'. Line 186 explains the information barrier: 'The Code Writer must work from the test files on disk, not from the Test Writer's conversation.' This applies regardless of entry mode."
+    },
+    {
+      "text": "Calls verify-green.ts with checksums from RED result",
+      "passed": true,
+      "evidence": "Step 4b line 170 says 'Extract testFileChecksums from the JSON output and store them — these are needed for GREEN verification.' Step 4d line 209 shows verify-green.ts called with '--checksums-json '{stored_checksums_from_red}'' directly referencing the stored RED checksums."
+    },
+    {
+      "text": "Still runs all 3 reviews (does NOT skip reviews for user-provided tests)",
+      "passed": true,
+      "evidence": "Steps 4e (Spec Compliance Review, line 229), 4f (Adversarial Review, line 246), and 4g (Code Quality Review, line 261) are all described unconditionally with no entry-mode-based conditional logic. The 'Completing a Unit' section (line 275) requires 'all three reviews pass'. No entry mode causes any review to be skipped."
+    }
+  ]
+}

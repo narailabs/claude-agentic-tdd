@@ -1,0 +1,54 @@
+{
+  "expectations": [
+    {
+      "text": "Calls detect-framework.ts via Bash (not SDK)",
+      "passed": true,
+      "evidence": "Line 77: `cd {plugin_root} && npx tsx skills/tdd/scripts/detect-framework.ts --working-dir {user_cwd} --spec \"{spec}\"` — invoked via Bash command, not SDK."
+    },
+    {
+      "text": "Presents work decomposition plan and waits for user confirmation",
+      "passed": true,
+      "evidence": "Line 101: \"Present the work plan to the user and wait for confirmation\" — explicit instruction in Phase 2: Work Decomposition."
+    },
+    {
+      "text": "Calls init-state.ts via Bash with --work-units-json",
+      "passed": true,
+      "evidence": "Lines 109-116: `cd {plugin_root} && npx tsx skills/tdd/scripts/init-state.ts --working-dir {user_cwd} --spec \"{spec}\" --entry-mode \"{mode}\" --framework-json '{...}' --work-units-json '[...]' --force` — Bash invocation includes --work-units-json flag."
+    },
+    {
+      "text": "Uses Agent tool (not SDK query) to spawn Test Writer with team_name",
+      "passed": true,
+      "evidence": "Line 144: \"Dispatch a teammate using the Agent tool with `team_name: \"tdd-session\"`.\" — explicit Agent tool with team_name, no SDK query."
+    },
+    {
+      "text": "Calls verify-red.ts via Bash and checks exit code",
+      "passed": true,
+      "evidence": "Lines 161-167: `cd {plugin_root} && npx tsx skills/tdd/scripts/verify-red.ts --working-dir {user_cwd} --test-files \"{comma_separated_files}\" --test-command \"{cmd}\" --language \"{lang}\" --entry-mode \"{mode}\"`. Lines 169-173: \"Exit 0: Tests fail as expected\" and \"Exit 1: Read the failure reason from JSON\" — exit code is checked."
+    },
+    {
+      "text": "Uses Read tool to read test files from disk for Code Writer (information barrier)",
+      "passed": true,
+      "evidence": "Lines 188-189: \"Use the **Read tool** to read the test files from disk\" and \"Use the **Read tool** to read `spec-contract-{unit.id}.md` from disk\" — explicit Read tool usage enforcing information barrier in Step 4c."
+    },
+    {
+      "text": "Calls verify-green.ts via Bash with --checksums-json from RED result",
+      "passed": true,
+      "evidence": "Lines 205-209: `cd {plugin_root} && npx tsx skills/tdd/scripts/verify-green.ts --working-dir {user_cwd} --test-files \"{comma_separated_files}\" --test-command \"{cmd}\" --checksums-json '{stored_checksums_from_red}'` — --checksums-json uses stored checksums from RED verification."
+    },
+    {
+      "text": "Spawns all 3 reviewers (spec-compliance, adversarial, code-quality) via Agent tool",
+      "passed": true,
+      "evidence": "Step 4e line 239: \"Dispatch a reviewer teammate using the Agent tool with `team_name: \"tdd-session\"`.\" (spec-compliance). Step 4f line 257: \"Dispatch a reviewer teammate with `team_name: \"tdd-session\"`.\" (adversarial). Step 4g line 269: \"Dispatch a reviewer teammate with `team_name: \"tdd-session\"`.\" (code-quality). All three reviewers use the Agent tool."
+    },
+    {
+      "text": "Calls check-state.ts before generate-report.ts",
+      "passed": true,
+      "evidence": "Phase 6 lines 323-328: check-state.ts is called first (`cd {plugin_root} && npx tsx skills/tdd/scripts/check-state.ts --working-dir {user_cwd}`). Lines 333-335: generate-report.ts is called only after exit 0 from check-state.ts. Explicit ordering enforced."
+    },
+    {
+      "text": "No references to Agent SDK, query(), or hooks — pure agent teams + scripts",
+      "passed": true,
+      "evidence": "Grep for 'Agent SDK|query()|hooks' returned no matches in SKILL.md. The file uses 'Agent tool' for team dispatch and Bash for scripts — no SDK, query(), or hooks references."
+    }
+  ]
+}

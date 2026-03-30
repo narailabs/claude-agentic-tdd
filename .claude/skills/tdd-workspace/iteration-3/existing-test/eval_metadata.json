@@ -1,0 +1,13 @@
+{
+  "eval_id": 3,
+  "eval_name": "existing-test",
+  "prompt": "/tdd implement against src/__tests__/calculator.test.ts",
+  "assertions": [
+    {"id": "A1", "text": "Detects entry mode as user-provided-test", "type": "behavioral"},
+    {"id": "A2", "text": "Skips Test Writer phase — goes straight to RED verification", "type": "structural"},
+    {"id": "A3", "text": "Calls verify-red.ts with --entry-mode user-provided-test", "type": "structural"},
+    {"id": "A4", "text": "Reads existing test file from disk for Code Writer (information barrier)", "type": "structural"},
+    {"id": "A5", "text": "Calls verify-green.ts with checksums from RED result", "type": "structural"},
+    {"id": "A6", "text": "Still runs all 3 reviews (does NOT skip reviews for user-provided tests)", "type": "structural"}
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "eval_id": 4,
+  "eval_name": "coverage-mode",
+  "prompt": "/tdd add test coverage for src/utils/ --skip-design",
+  "assertions": [
+    {"id": "A1", "text": "Detects entry mode as existing-codebase", "type": "behavioral"},
+    {"id": "A2", "text": "Honors --skip-design flag", "type": "behavioral"},
+    {"id": "A3", "text": "Reads existing source files to generate spec-contracts", "type": "behavioral"},
+    {"id": "A4", "text": "Calls verify-red.ts with --entry-mode existing-codebase", "type": "structural"},
+    {"id": "A5", "text": "Handles RED verification for coverage mode (tests may pass initially against existing code)", "type": "behavioral"},
+    {"id": "A6", "text": "Calls verify-green.ts after implementation adjustments", "type": "structural"},
+    {"id": "A7", "text": "Report shows coverage additions via generate-report.ts", "type": "structural"}
+  ]
+}

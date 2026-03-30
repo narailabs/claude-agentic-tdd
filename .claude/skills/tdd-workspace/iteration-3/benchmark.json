@@ -1,0 +1,199 @@
+{
+  "metadata": {
+    "skill_name": "tdd",
+    "skill_path": "skills/tdd/SKILL.md",
+    "executor_model": "claude-opus-4-6",
+    "timestamp": "2026-03-30T15:30:00Z",
+    "iteration": 3,
+    "changes": "v4.0.0: Rewrote SKILL.md for agent teams + TypeScript verification scripts (replacing SDK orchestrator). Added entry-mode-aware branching after initial grading found 3 gaps.",
+    "evals_run": [
+      "simple-utility",
+      "auth-system",
+      "existing-test",
+      "coverage-mode",
+      "ambiguous-spec",
+      "plan-execution",
+      "parallel-batch"
+    ],
+    "runs_per_configuration": 1
+  },
+  "runs": [
+    {
+      "eval_id": 1,
+      "eval_name": "simple-utility",
+      "configuration": "with_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 10,
+        "failed": 0,
+        "total": 10
+      },
+      "expectations": [
+        {"text": "Calls detect-framework.ts via Bash (not SDK)", "passed": true, "evidence": "Phase 1: exact bash command with npx tsx scripts/detect-framework.ts"},
+        {"text": "Presents work decomposition plan and waits for user confirmation", "passed": true, "evidence": "Phase 2 step 4: 'Present the work plan to the user and wait for confirmation'"},
+        {"text": "Calls init-state.ts via Bash with --work-units-json", "passed": true, "evidence": "Phase 3: exact bash command with --work-units-json '[...]'"},
+        {"text": "Uses Agent tool (not SDK query) to spawn Test Writer with team_name", "passed": true, "evidence": "Step 4a: 'Dispatch a teammate using the Agent tool with team_name: tdd-session'"},
+        {"text": "Calls verify-red.ts via Bash and checks exit code", "passed": true, "evidence": "Step 4b: exact bash command, exit 0/1 handling documented"},
+        {"text": "Uses Read tool to read test files from disk for Code Writer (information barrier)", "passed": true, "evidence": "Step 4c: 'Use the Read tool to read the test files from disk'"},
+        {"text": "Calls verify-green.ts via Bash with --checksums-json from RED result", "passed": true, "evidence": "Step 4d: --checksums-json '{stored_checksums_from_red}'"},
+        {"text": "Spawns all 3 reviewers (spec-compliance, adversarial, code-quality) via Agent tool", "passed": true, "evidence": "Steps 4e, 4f, 4g each dispatch via Agent tool with team_name"},
+        {"text": "Calls check-state.ts before generate-report.ts", "passed": true, "evidence": "Phase 6: check-state.ts first, then generate-report.ts only if exit 0"},
+        {"text": "No references to Agent SDK, query(), or hooks — pure agent teams + scripts", "passed": true, "evidence": "No occurrences of 'Agent SDK', 'query()', or 'hooks' in SKILL.md"}
+      ]
+    },
+    {
+      "eval_id": 2,
+      "eval_name": "auth-system",
+      "configuration": "with_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 9,
+        "failed": 0,
+        "total": 9
+      },
+      "expectations": [
+        {"text": "Triggers design gate (Phase 0) for multi-feature spec", "passed": true, "evidence": "Phase 0: '3+ distinct features' trigger — auth has registration, login, password reset"},
+        {"text": "Decomposes into 3+ work units with dependency ordering", "passed": true, "evidence": "Phase 2: work units with dependsOn field"},
+        {"text": "Passes --design-summary to init-state.ts", "passed": true, "evidence": "Phase 3: 'Pass --design-summary \"{summary}\" if Phase 0 ran'"},
+        {"text": "Each unit goes through full RED→GREEN→3-review cycle", "passed": true, "evidence": "Steps 4a-4g define the complete pipeline per unit"},
+        {"text": "Respects dependency order (registration before login/reset)", "passed": true, "evidence": "Phase 4: 'Units whose dependsOn are all completed can run concurrently'"},
+        {"text": "Uses update-state.ts to track each unit's status transitions", "passed": true, "evidence": "Steps 4b, 4d, Completing: update-state.ts called at each transition"},
+        {"text": "Phase 5 runs full test suite (not per-unit)", "passed": true, "evidence": "Phase 5: 'Run the full test suite (no specific files)'"},
+        {"text": "Calls check-state.ts and generate-report.ts in Phase 6", "passed": true, "evidence": "Phase 6: both script commands present"},
+        {"text": "Uses TeamDelete for cleanup in Phase 7", "passed": true, "evidence": "Phase 7: 'Use TeamDelete to shut down the tdd-session team'"}
+      ]
+    },
+    {
+      "eval_id": 3,
+      "eval_name": "existing-test",
+      "configuration": "with_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 6,
+        "failed": 0,
+        "total": 6
+      },
+      "expectations": [
+        {"text": "Detects entry mode as user-provided-test", "passed": true, "evidence": "Phase 1: detectEntryMode returns USER_PROVIDED_TEST for 'implement against *.test.ts'"},
+        {"text": "Skips Test Writer phase — goes straight to RED verification", "passed": true, "evidence": "Entry Mode Branching: 'user-provided-test: Skip Step 4a (Test Writer) — go straight to Step 4b (RED verification)'"},
+        {"text": "Calls verify-red.ts with --entry-mode user-provided-test", "passed": true, "evidence": "Step 4b: --entry-mode '{mode}' where mode is user-provided-test"},
+        {"text": "Reads existing test file from disk for Code Writer (information barrier)", "passed": true, "evidence": "Step 4c: Read tool reads test files from disk"},
+        {"text": "Calls verify-green.ts with checksums from RED result", "passed": true, "evidence": "Step 4d: --checksums-json from RED output"},
+        {"text": "Still runs all 3 reviews (does NOT skip reviews for user-provided tests)", "passed": true, "evidence": "Entry Mode Branching: 'All other steps (4b-4g) proceed normally'"}
+      ],
+      "notes": ["A2 failed in initial grading, fixed by adding Entry Mode Branching section"]
+    },
+    {
+      "eval_id": 4,
+      "eval_name": "coverage-mode",
+      "configuration": "with_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 7,
+        "failed": 0,
+        "total": 7
+      },
+      "expectations": [
+        {"text": "Detects entry mode as existing-codebase", "passed": true, "evidence": "Phase 1: detectEntryMode detects existing-codebase"},
+        {"text": "Honors --skip-design flag", "passed": true, "evidence": "Phase 0: '--skip-design => skip entirely'"},
+        {"text": "Reads existing source files to generate spec-contracts", "passed": true, "evidence": "Entry Mode Branching: 'existing-codebase: read the existing source files (Read tool) to understand what code exists before generating spec-contracts'"},
+        {"text": "Calls verify-red.ts with --entry-mode existing-codebase", "passed": true, "evidence": "Step 4b: --entry-mode '{mode}'"},
+        {"text": "Handles RED verification for coverage mode (tests may pass initially against existing code)", "passed": true, "evidence": "Entry Mode Branching: 'uses a hide-and-restore strategy: temporarily renames impl files so tests fail without them, verifying the tests are genuine. After RED, the impl files are restored'"},
+        {"text": "Calls verify-green.ts after implementation adjustments", "passed": true, "evidence": "Step 4d: verify-green.ts command"},
+        {"text": "Report shows coverage additions via generate-report.ts", "passed": true, "evidence": "Phase 6: generate-report.ts"}
+      ],
+      "notes": ["A3 and A5 failed in initial grading, fixed by adding Entry Mode Branching section"]
+    },
+    {
+      "eval_id": 5,
+      "eval_name": "ambiguous-spec",
+      "configuration": "with_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 6,
+        "failed": 0,
+        "total": 6
+      },
+      "expectations": [
+        {"text": "Triggers design gate (Phase 0) due to ambiguity", "passed": true, "evidence": "Phase 0: 'ambiguous requirements' trigger"},
+        {"text": "Asks clarifying questions one at a time (not a questionnaire dump)", "passed": true, "evidence": "Phase 0: 'Ask the user one clarifying question at a time (do not dump a list)'"},
+        {"text": "Does NOT call init-state.ts or start Phase 3 before design approval", "passed": true, "evidence": "Sequential phase ordering: Phase 3 follows Phase 2 which follows Phase 0"},
+        {"text": "Proposes design approaches with trade-offs", "passed": true, "evidence": "Phase 0: 'Propose trade-offs where the spec is ambiguous'"},
+        {"text": "Waits for explicit user confirmation before proceeding", "passed": true, "evidence": "Phase 2 step 4: 'Present the work plan to the user and wait for confirmation'"},
+        {"text": "Design summary feeds into work decomposition (Phase 2)", "passed": true, "evidence": "Phase 2 step 1: 'Analyze the spec and design summary (if any)'"}
+      ]
+    },
+    {
+      "eval_id": 6,
+      "eval_name": "plan-execution",
+      "configuration": "with_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 9,
+        "failed": 0,
+        "total": 9
+      },
+      "expectations": [
+        {"text": "Detects entry mode as plan-execution", "passed": true, "evidence": "Phase 1: detectEntryMode for 'execute plan'"},
+        {"text": "Classifies tasks into code and non-code types", "passed": true, "evidence": "Phase 2: unitType 'code' or 'task'"},
+        {"text": "Routes code tasks through full TDD pipeline (RED→GREEN→reviews)", "passed": true, "evidence": "Entry Mode Branching: 'Code units follow the full pipeline (4a-4g)'"},
+        {"text": "Routes non-code tasks through implementer dispatch (spec-compliance + code-quality only)", "passed": true, "evidence": "Handling Task Units: implementer + spec compliance + code quality (skip adversarial)"},
+        {"text": "Respects dependency ordering from plan", "passed": true, "evidence": "Phase 4: 'Units whose dependsOn are all completed can run concurrently'"},
+        {"text": "Uses eager dispatch (DAG-based, not rigid batches)", "passed": true, "evidence": "Phase 4: dependency-based concurrency, not sequential batches"},
+        {"text": "Calls update-state.ts for both code and non-code units", "passed": true, "evidence": "Completing a Unit: update-state.ts --status COMPLETED for all unit types"},
+        {"text": "Calls check-state.ts before generate-report.ts", "passed": true, "evidence": "Phase 6: sequential check then generate"},
+        {"text": "Phase 5 holistic review covers cross-task integration", "passed": true, "evidence": "Phase 5: 'Look for requirements that fell through the cracks between unit boundaries'"}
+      ]
+    },
+    {
+      "eval_id": 7,
+      "eval_name": "parallel-batch",
+      "configuration": "with_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 7,
+        "failed": 0,
+        "total": 7
+      },
+      "expectations": [
+        {"text": "Decomposes into 4 work units with no inter-dependencies", "passed": true, "evidence": "Phase 2: dependsOn: [] for independent endpoints"},
+        {"text": "Dispatches up to --parallel (default 4) concurrent unit pipelines", "passed": true, "evidence": "Arguments: '--parallel <N>: max concurrent unit pipelines (default 4)'"},
+        {"text": "Each unit gets its own Agent tool spawn (Test Writer, Code Writer, reviewers)", "passed": true, "evidence": "Steps 4a-4g: per-unit Agent tool dispatches"},
+        {"text": "Each unit calls verify-red.ts and verify-green.ts independently", "passed": true, "evidence": "Steps 4b, 4d: per-unit script invocations"},
+        {"text": "All 3 reviews run for each unit (not skipped for parallel batches)", "passed": true, "evidence": "Steps 4e-4g: unconditional per-unit reviews"},
+        {"text": "update-state.ts called per-unit as each completes", "passed": true, "evidence": "Completing a Unit: update-state.ts per-unit"},
+        {"text": "Phase 5 final integration test covers all 4 endpoints together", "passed": true, "evidence": "Phase 5: full test suite with no specific files"}
+      ]
+    }
+  ],
+  "run_summary": {
+    "with_skill": {
+      "pass_rate": {"mean": 1.0, "stddev": 0.0},
+      "total_expectations": 54,
+      "total_passed": 54,
+      "total_failed": 0
+    },
+    "delta_from_iteration_2": {
+      "architecture": "v3.0 SDK → v4.0 agent teams + scripts",
+      "assertions_changed": "All 54 assertions are new — v4.0-specific (script invocations, Agent tool, team_name, exit codes)",
+      "initial_pass_rate": "51/54 (94.4%)",
+      "after_fix_pass_rate": "54/54 (100%)",
+      "fix_applied": "Added Entry Mode Branching section to handle user-provided-test and existing-codebase modes"
+    }
+  },
+  "analyst_observations": [
+    "v4.0 assertions are fundamentally different from v2.0/v3.0 — they test for agent teams (TeamCreate, Agent tool, team_name) and script invocations (Bash commands with exact script names and args), not SDK calls.",
+    "Initial grading found 3 failures, all in the same category: entry-mode-aware branching. The SKILL.md described a generic pipeline but didn't specialize for user-provided-test or existing-codebase modes.",
+    "Fix was surgical: a single 'Entry Mode Branching' section (18 lines) before Step 4a that documents all 4 entry modes and their flow differences. All 3 failures now pass.",
+    "Strongest structural gates: verify-red.ts and verify-green.ts exit codes. These are Bash commands whose output is in the conversation — the model cannot claim a different result.",
+    "Weakest point remains the same as v2.0: review enforcement. Reviews are agent dispatches (model-to-model), not script-verified. The model could theoretically skip a review. However, the 'Red Flags' section and check-state.ts consistency check provide layers of defense.",
+    "RECOMMENDATION: Real execution eval needed. Spec-level analysis has been 100% across 3 iterations — the bottleneck is execution compliance, not specification coverage."
+  ]
+}

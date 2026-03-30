@@ -1,0 +1,39 @@
+{
+  "expectations": [
+    {
+      "text": "Decomposes into 4 work units with no inter-dependencies",
+      "passed": true,
+      "evidence": "Phase 2 (lines 88-101) produces work units each with a `dependsOn` field. For '4 independent endpoints', the decomposition would yield 4 units with empty dependsOn arrays. Phase 4 (line 133) explicitly handles dependency-based scheduling: 'Units whose dependsOn are all completed can run concurrently' — so all 4 would be eligible immediately."
+    },
+    {
+      "text": "Dispatches up to --parallel (default 4) concurrent unit pipelines",
+      "passed": true,
+      "evidence": "Line 53 defines '--parallel <N>: max concurrent unit pipelines (default 4)'. Line 133 states: 'Units whose dependsOn are all completed can run concurrently, up to --parallel concurrent pipelines.' With 4 independent units and default parallel=4, all 4 would dispatch concurrently."
+    },
+    {
+      "text": "Each unit gets its own Agent tool spawn (Test Writer, Code Writer, reviewers)",
+      "passed": true,
+      "evidence": "Line 135: 'For each work unit, execute steps 4a through 4g'. Step 4a dispatches a Test Writer teammate via Agent tool. Step 4c dispatches a Code Writer teammate via Agent tool. Steps 4e, 4f, 4g each dispatch a reviewer teammate via Agent tool. All within the per-unit loop, so each unit gets its own set of Agent tool spawns."
+    },
+    {
+      "text": "Each unit calls verify-red.ts and verify-green.ts independently",
+      "passed": true,
+      "evidence": "Step 4b (lines 157-180) calls verify-red.ts with per-unit --test-files and updates state with --unit-id '{id}'. Step 4d (lines 199-227) calls verify-green.ts with per-unit --test-files and --checksums-json from that unit's RED phase. Both are inside the 'For each work unit' loop (line 135), so each unit invokes them independently."
+    },
+    {
+      "text": "All 3 reviews run for each unit (not skipped for parallel batches)",
+      "passed": true,
+      "evidence": "Steps 4e (Spec Compliance Review), 4f (Adversarial Review), and 4g (Code Quality Review) are all within the 'For each work unit' loop starting at line 135. There is no conditional logic that skips reviews based on parallelism or batch size. Line 275 states: 'After all three reviews pass, mark the unit completed' — this is unconditional."
+    },
+    {
+      "text": "update-state.ts called per-unit as each completes",
+      "passed": true,
+      "evidence": "Lines 276-279: after all three reviews pass, update-state.ts is called with '--unit-id \"{id}\" --status \"COMPLETED\"'. This is within the per-unit loop. Additionally, update-state.ts is called per-unit during RED verification (lines 177-180) and GREEN verification (lines 222-227), each with the specific unit's --unit-id."
+    },
+    {
+      "text": "Phase 5 final integration test covers all 4 endpoints together",
+      "passed": true,
+      "evidence": "Phase 5 (lines 302-315) runs 'the full test suite (no specific files)' via 'cd {user_cwd} && {testCommand}', then reads ALL implementation and test files and performs 'a holistic spec compliance check: compare the FULL original spec against ALL code produced. Look for requirements that fell through the cracks between unit boundaries.' This covers all 4 endpoints together in integration."
+    }
+  ]
+}

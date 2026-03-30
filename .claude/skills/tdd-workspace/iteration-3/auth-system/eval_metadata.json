@@ -1,0 +1,16 @@
+{
+  "eval_id": 2,
+  "eval_name": "auth-system",
+  "prompt": "/tdd build a user authentication system with registration, login, and password reset",
+  "assertions": [
+    {"id": "A1", "text": "Triggers design gate (Phase 0) for multi-feature spec", "type": "behavioral"},
+    {"id": "A2", "text": "Decomposes into 3+ work units with dependency ordering", "type": "behavioral"},
+    {"id": "A3", "text": "Passes --design-summary to init-state.ts", "type": "structural"},
+    {"id": "A4", "text": "Each unit goes through full RED→GREEN→3-review cycle", "type": "structural"},
+    {"id": "A5", "text": "Respects dependency order (registration before login/reset)", "type": "behavioral"},
+    {"id": "A6", "text": "Uses update-state.ts to track each unit's status transitions", "type": "structural"},
+    {"id": "A7", "text": "Phase 5 runs full test suite (not per-unit)", "type": "structural"},
+    {"id": "A8", "text": "Calls check-state.ts and generate-report.ts in Phase 6", "type": "structural"},
+    {"id": "A9", "text": "Uses TeamDelete for cleanup in Phase 7", "type": "structural"}
+  ]
+}

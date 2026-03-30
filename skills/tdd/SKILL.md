@@ -132,7 +132,25 @@ user can provide.
 Process work units respecting dependency order. Units whose `dependsOn` are all
 completed can run concurrently, up to `--parallel` concurrent pipelines.
 
-For each work unit, execute steps 4a through 4g:
+For each work unit, execute steps 4a through 4g. Entry mode affects the flow:
+
+### Entry Mode Branching
+
+- **`natural-language-spec`** (default): Run all steps 4a–4g as written below.
+- **`user-provided-test`**: The user already provided a failing test file. **Skip
+  Step 4a (Test Writer)** — go straight to Step 4b (RED verification) using the
+  user's existing test file. The test file is already on disk; read it with the
+  Read tool and use it as-is. All other steps (4b–4g) proceed normally.
+- **`existing-codebase`** (coverage mode): Implementation already exists on disk.
+  In Phase 2, **read the existing source files** (`Read` tool) to understand what
+  code exists before generating spec-contracts and test plans. Run Step 4a (Test
+  Writer), but instruct it that implementation already exists. In Step 4b (RED
+  verification), note that the script handles this mode specially — it uses a
+  hide-and-restore strategy: temporarily renames impl files so tests fail without
+  them, verifying the tests are genuine. After RED, the impl files are restored
+  and the Code Writer adjusts as needed so tests pass.
+- **`plan-execution`**: Mixed code and non-code tasks. Code units follow the full
+  pipeline (4a–4g). Non-code task units use the implementer path (Step 4h).
 
 ### Step 4a: Test Writer
 

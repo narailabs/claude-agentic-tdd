@@ -1,0 +1,46 @@
+{
+  "expectations": [
+    {
+      "id": "A1",
+      "text": "Detects entry mode as existing-codebase",
+      "passed": true,
+      "evidence": "Phase 1 (line 77) calls detect-framework.ts with --spec \"{spec}\". The detect-framework.ts script calls detectEntryMode(spec) from src/detection.ts, which matches 'add test coverage' in the spec text and returns EntryMode.EXISTING_CODEBASE. The SKILL.md instructs (line 82): 'Store the framework info and entry mode for all subsequent phases.' The prompt 'add test coverage for src/utils/' contains 'add test coverage' which triggers detection."
+    },
+    {
+      "id": "A2",
+      "text": "Honors --skip-design flag",
+      "passed": true,
+      "evidence": "SKILL.md line 49 parses --skip-design from $ARGUMENTS. Lines 61-63 state: '--skip-design => skip entirely' under Phase 0 Design Gate. The flag is explicitly listed and its behavior is clearly defined to skip Phase 0 entirely."
+    },
+    {
+      "id": "A3",
+      "text": "Reads existing source files to generate spec-contracts",
+      "passed": true,
+      "evidence": "SKILL.md Entry Mode Branching section (lines 146-148) now explicitly states: '`existing-codebase` (coverage mode): Implementation already exists on disk. In Phase 2, **read the existing source files** (`Read` tool) to understand what code exists before generating spec-contracts and test plans.' This directly addresses the requirement to read source files before generating spec-contracts in coverage mode."
+    },
+    {
+      "id": "A4",
+      "text": "Calls verify-red.ts with --entry-mode existing-codebase",
+      "passed": true,
+      "evidence": "SKILL.md lines 162-167 show the verify-red.ts invocation with --entry-mode \"{mode}\" as a required argument. The {mode} variable is populated from Phase 1's detect-framework.ts output (line 82: 'Store the framework info and entry mode for all subsequent phases'). Since the spec 'add test coverage for src/utils/' triggers EXISTING_CODEBASE detection, the mode passed will be 'existing-codebase'."
+    },
+    {
+      "id": "A5",
+      "text": "Handles RED verification for coverage mode (tests may pass initially against existing code)",
+      "passed": true,
+      "evidence": "SKILL.md Entry Mode Branching section (lines 148-151) now explicitly states: 'In Step 4b (RED verification), note that the script handles this mode specially — it uses a hide-and-restore strategy: temporarily renames impl files so tests fail without them, verifying the tests are genuine. After RED, the impl files are restored and the Code Writer adjusts as needed so tests pass.' This documents the special RED verification handling for coverage mode that was previously only implemented in the scripts but not described in the SKILL.md."
+    },
+    {
+      "id": "A6",
+      "text": "Calls verify-green.ts after implementation adjustments",
+      "passed": true,
+      "evidence": "SKILL.md lines 204-227 (Step 4d) describe GREEN verification which runs verify-green.ts with --test-files, --test-command, and --checksums-json arguments. This is called after the Code Writer (Step 4c) completes, regardless of entry mode. The flow is the same for all modes: Test Writer -> RED -> Code Writer -> GREEN. In coverage mode, the Code Writer may need to adjust implementations or add new code, and GREEN verification confirms tests pass with unchanged test checksums."
+    },
+    {
+      "id": "A7",
+      "text": "Report shows coverage additions via generate-report.ts",
+      "passed": true,
+      "evidence": "SKILL.md Phase 6 (lines 331-338) calls generate-report.ts after check-state.ts passes. The report script (src/report.ts lines 53-54) maps EntryMode.EXISTING_CODEBASE to the string 'existing-codebase' for the report. The generate-report.ts script reads the state file which contains the entry mode and all unit completion data, so coverage additions are reflected in the generated tdd-report.md."
+    }
+  ]
+}

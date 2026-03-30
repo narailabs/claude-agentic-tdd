@@ -1,0 +1,13 @@
+{
+  "eval_id": 5,
+  "eval_name": "ambiguous-spec",
+  "prompt": "/tdd I need something that handles payments. like credit cards and stuff. also refunds maybe? idk the details yet",
+  "assertions": [
+    {"id": "A1", "text": "Triggers design gate (Phase 0) due to ambiguity", "type": "behavioral"},
+    {"id": "A2", "text": "Asks clarifying questions one at a time (not a questionnaire dump)", "type": "behavioral"},
+    {"id": "A3", "text": "Does NOT call init-state.ts or start Phase 3 before design approval", "type": "negative"},
+    {"id": "A4", "text": "Proposes design approaches with trade-offs", "type": "behavioral"},
+    {"id": "A5", "text": "Waits for explicit user confirmation before proceeding", "type": "behavioral"},
+    {"id": "A6", "text": "Design summary feeds into work decomposition (Phase 2)", "type": "structural"}
+  ]
+}

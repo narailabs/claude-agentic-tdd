@@ -1,0 +1,14 @@
+{
+  "eval_id": 7,
+  "eval_name": "parallel-batch",
+  "prompt": "/tdd implement a REST API with 4 independent endpoints",
+  "assertions": [
+    {"id": "A1", "text": "Decomposes into 4 work units with no inter-dependencies", "type": "behavioral"},
+    {"id": "A2", "text": "Dispatches up to --parallel (default 4) concurrent unit pipelines", "type": "structural"},
+    {"id": "A3", "text": "Each unit gets its own Agent tool spawn (Test Writer, Code Writer, reviewers)", "type": "structural"},
+    {"id": "A4", "text": "Each unit calls verify-red.ts and verify-green.ts independently", "type": "structural"},
+    {"id": "A5", "text": "All 3 reviews run for each unit (not skipped for parallel batches)", "type": "structural"},
+    {"id": "A6", "text": "update-state.ts called per-unit as each completes", "type": "structural"},
+    {"id": "A7", "text": "Phase 5 final integration test covers all 4 endpoints together", "type": "structural"}
+  ]
+}

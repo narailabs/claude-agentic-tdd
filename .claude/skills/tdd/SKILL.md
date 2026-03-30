@@ -113,6 +113,7 @@ Determine the mode based on context:
 - Test Writer phase entirely
 - RED verification (user owns the tests; trust their quality)
 - Design gate
+- User confirmation (single test file — the user's intent is already clear)
 
 **Mode 4 (Plan Execution)** requires special handling:
 - **Task extraction**: Read the plan file, extract all tasks with full text and context. Do NOT make subagents read the plan file — provide the full task text inline.

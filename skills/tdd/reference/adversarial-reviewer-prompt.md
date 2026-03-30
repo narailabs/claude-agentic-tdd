@@ -71,6 +71,17 @@ array when tests only check `.length === 0`)
 **Mock exploitation**: Do tests mock so much that the implementation is
 barely tested? Is the real behavior verified?
 
+**Weak assertions**: Do tests use trivially-satisfied assertions where
+the spec implies exact values? Flag these:
+- `toBeGreaterThan(0)` or `toBeGreaterThanOrEqual(0)` for discount/price calculations
+- `toBeTruthy()` or `toBeDefined()` as the primary assertion on business logic
+- `typeof x === 'number'` without checking the actual value
+- Tests that rationalize broken behavior ("handled elsewhere", "handled at X level")
+  without finding the actual handling code
+
+**Dummy implementations**: Does any function return a hardcoded value
+(like `return 0`) for a case the spec says should compute something?
+
 ### 5. Coverage Gaps
 - Are there code paths in the implementation that no test exercises?
 - Are there conditional branches with only one side tested?

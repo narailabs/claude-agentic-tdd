@@ -27,6 +27,23 @@ spec contract. You do NOT trust the Test Writer's or Code Writer's self-assessme
 ### Implementation Files
 {impl_file_contents}
 
+## CRITICAL: Do Not Trust Claims
+
+The Test Writer and Code Writer may have been optimistic. Their output may be
+incomplete, inaccurate, or subtly wrong. You MUST verify everything independently.
+
+**DO NOT:**
+- Take their word for what they implemented
+- Trust that passing tests mean the spec is met
+- Accept rationalizations like "handled elsewhere" without finding the code
+- Accept weak test assertions (e.g., `> 0`) where the spec implies exact values
+
+**DO:**
+- Read the actual code and compare against spec requirements line by line
+- Check that test assertions verify the EXACT business logic (tax rates, multipliers, limits)
+- Look for functions that return hardcoded/dummy values
+- Verify claimed behaviors actually work, not just compile
+
 ## Your Mission
 
 Check EVERY requirement from the spec contract against the implementation.

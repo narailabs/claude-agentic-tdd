@@ -317,7 +317,7 @@ See `reference/anti-cheat.md` → "Coverage Mode RED Verification" for the full 
 **Mode 3 (User-Provided Test)**: Skip RED verification entirely.
 
 **All modes** — these checks always apply:
-4. **Check assertion density**: Read the test file. Count assertion patterns (`expect(`, `assert`, `.toBe(`, etc.) per test function. Must meet minimum threshold.
+4. **Check assertion density**: Read the test file. Count assertion patterns (`expect(`, `assert`, `.toBe(`, etc.) per test function. Must meet minimum threshold. Also flag **weak assertions** where the spec implies exact values: `toBeGreaterThan(0)`, `toBeTruthy()`, `toBeDefined()` as sole assertion, `typeof x === 'number'` without checking value. These are trivially satisfied and must be replaced with exact expected values.
 5. **Check behavior-over-implementation** (MANDATORY — do not skip): Scan for anti-patterns per `reference/anti-cheat.md` Check 5: excessive mocking (mocks > 2× test count), private method access, implementation-mirroring. Flag violations and re-prompt the Test Writer.
 
 If any check fails: log the violation, provide feedback to the Test Writer, re-spawn with correction instructions. After `maxRetries` failures, escalate to user (or skip if `--skip-failed`).
@@ -358,6 +358,16 @@ After the Code Writer completes:
 
 Run all three reviews back-to-back without pausing. When one review returns a passing result, immediately spawn the next reviewer in the same turn. Do not output a status message and stop — continue executing.
 
+**Pre-review gate**: Before dispatching ANY reviewer, verify on disk:
+```bash
+test -f "spec-contract-{unit_id}.md" && echo "SPEC CONTRACT EXISTS" || echo "MISSING — cannot review"
+```
+If the spec-contract file does not exist, the review CANNOT proceed. Go back and create it.
+
+**Do Not Trust Self-Reports**: Reviewers are independent agents that verify by reading actual code from disk — not by trusting the orchestrator's memory of what happened. Each reviewer gets a fresh context with only the files they need. The orchestrator MUST NOT fabricate review results — it must dispatch the actual reviewer agent and read its response.
+
+**Review loops**: If a reviewer finds issues, the implementer fixes them, then the SAME reviewer reviews AGAIN. Do not skip the re-review. Do not assume the fix was correct. Repeat until the reviewer approves.
+
 #### Step 4e: Spec Compliance Review
 
 Read `reference/spec-compliance-reviewer-prompt.md` for the full template.
@@ -375,11 +385,11 @@ The reviewer checks:
 4. API contract accuracy — do signatures and types match the spec?
 5. Integration readiness — are interfaces compatible with dependent units?
 
-If the reviewer finds NON-COMPLIANT issues: send the pair back for revision. The Test Writer adds missing tests, then the Code Writer re-implements.
+If NON-COMPLIANT: send back for revision → Test Writer adds missing tests → Code Writer re-implements → **re-review** (dispatch the reviewer again, do not skip).
 
 If COMPLIANT: proceed to adversarial review.
 
-**ORDERING RULE**: Spec compliance MUST pass before adversarial review runs. There is no value in reviewing code quality for an implementation that doesn't match the spec.
+**ORDERING RULE**: Spec compliance MUST pass before adversarial review runs.
 
 #### Step 4f: Adversarial Review
 
@@ -400,9 +410,9 @@ The reviewer checks:
 
 Also reference `reference/testing-anti-patterns.md` — flag any of the 5 documented anti-patterns.
 
-If the reviewer finds critical issues: log findings, send the pair back for revision (Test Writer re-writes tests addressing the gaps, then Code Writer re-implements).
+If critical issues found: send back for revision → fix → **re-review** (do not skip).
 
-If the reviewer passes: proceed to code quality review.
+If PASS: proceed to code quality review.
 
 #### Step 4g: Code Quality Review
 
@@ -420,9 +430,9 @@ The reviewer checks:
 4. No overbuilding — implementation does what the spec requires, nothing more
 5. Code follows existing project patterns and conventions
 
-If the reviewer finds **critical or important** issues: send back to Code Writer for fixes, then re-review.
+If **critical or important** issues found: send back for fixes → **re-review** (do not skip).
 
-If approved: mark work unit as completed in state file. **This is the ONLY point where a unit may be marked complete.** Update `.tdd-state.json` with review results.
+If approved: mark work unit as completed in state file. **This is the ONLY point where a unit may be marked complete.** Update `.tdd-state.json` with review results — set unit status to `"completed"`, NOT leave it as `"pending"`.
 
 **ORDERING RULE**: Spec compliance → Adversarial review → Code quality. Each stage must pass before the next runs. No exceptions. No skipping.
 
@@ -452,6 +462,19 @@ All subagents (Test Writer, Code Writer, Implementer) report one of four statuse
 | **BLOCKED** | Cannot complete the task | Assess: (1) context problem → provide more context, (2) reasoning limit → re-dispatch with more capable model, (3) task too large → break into smaller pieces, (4) plan is wrong → escalate to user |
 
 **Never** ignore an escalation or force the same subagent to retry without changes. If a subagent says it's stuck, something needs to change.
+
+### Red Flags — Never Do These
+
+- Fabricate review results — every review must be an actual agent dispatch with a real response
+- Skip re-review after fixes (reviewer found issues → fix → review AGAIN)
+- Mark a unit complete while its state file entry is still `"pending"`
+- Generate a report claiming reviews passed without dispatching review agents
+- Accept "close enough" on spec compliance — if the reviewer found issues, it's not done
+- Leave `.tdd-state.json` showing `"pending"` for completed units
+- Let the orchestrator's memory substitute for a reviewer reading actual code from disk
+- Write test assertions like `toBeGreaterThan(0)` or `toBeTruthy()` where the spec implies exact values
+- Accept test rationalizations like "handled elsewhere" without finding the actual handling code
+- Proceed to the next unit while any review has open issues
 
 ### Parallel Execution
 
@@ -522,8 +545,14 @@ Do NOT accept these from any agent (including yourself):
 
 **IRON LAW**: No cleanup (Phase 7) without a report. Generate the report BEFORE any cleanup.
 
+**Content integrity check** — before generating the report, verify the state file is consistent:
+```bash
+grep -c '"status": "pending"' .tdd-state.json
+```
+If ANY work units are still `"pending"` but the session claims they're complete, the pipeline was not fully executed. Go back and complete the missing phases for those units — do not generate a report that claims completion for pending units.
+
 Read `reference/report-format.md` for the full templates. Generate:
-1. `tdd-report.md` — human-readable summary with per-unit phase statuses, review findings, and anti-cheat log
+1. `tdd-report.md` — human-readable summary with per-unit phase statuses, review findings, and anti-cheat log. Report data MUST come from the state file, not from the orchestrator's memory.
 2. Finalize `tdd-session.jsonl` — append `session.complete` event with summary
 
 Verify the report exists:

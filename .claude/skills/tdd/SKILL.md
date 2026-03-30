@@ -55,8 +55,8 @@ Load configuration in priority order:
    antiCheat.maxRetries: 3
    antiCheat.maxMockDepth: 2
    antiCheat.flagPrivateMethodTests: true
-   execution.maxParallelPairs: 3
-   execution.parallelMode: "auto"
+   execution.maxParallelPairs: 4
+   execution.parallelMode: "eager"
    execution.skipFailedAfterRetries: false
    execution.modelStrategy: "auto"
    execution.effortLevel: "high"
@@ -278,9 +278,9 @@ Spec: Generate reset token, validate token, update password
 Files: src/__tests__/password-reset.test.ts → src/password-reset.ts
 Dependencies: [user-registration]
 
-Execution plan:
-  Batch 1: user-registration
-  Batch 2 (parallel): user-login, password-reset
+Execution plan (eager dispatch, max 4 concurrent):
+  Ready immediately: user-registration
+  After user-registration: user-login, password-reset (parallel)
 
 Proceed? [confirm/modify/cancel]
 ```
@@ -320,11 +320,11 @@ Spec: Generate OpenAPI spec for auth endpoints
 Files: docs/openapi.yaml
 Dependencies: [user-registration, user-login]
 
-Execution plan:
-  Batch 1 (parallel): database-schema, env-config
-  Batch 2: user-registration
-  Batch 3: user-login
-  Batch 4: api-docs
+Execution plan (eager dispatch, max 4 concurrent):
+  Ready immediately: database-schema, env-config (parallel)
+  After database-schema: user-registration
+  After user-registration + env-config: user-login
+  After user-registration + user-login: api-docs
 
 Proceed? [confirm/modify/cancel]
 ```
@@ -522,43 +522,65 @@ All subagents (Test Writer, Code Writer, Implementer) report one of four statuse
 
 ### Parallel Execution
 
-The skill builds a dependency graph from the work units and executes independent units concurrently. This applies to both TDD work units and non-code tasks in Mode 4.
+The skill uses **eager dispatch** — each unit starts as soon as its specific dependencies complete, not when an entire batch finishes. This maximizes throughput for long specs with complex dependency graphs.
 
-#### Dependency Graph
+#### Dependency Graph and Ready Queue
 
-Compute the execution order from the `dependsOn` fields:
+Build a DAG from the `dependsOn` fields, then maintain a **ready queue**:
 
-1. **Topological sort**: Order units so dependencies complete before dependents.
-2. **Identify parallel batches**: Group units that share no dependencies into concurrent batches.
-   - Batch 1: all units with no dependencies (roots)
-   - Batch 2: units whose dependencies are all in Batch 1
-   - And so on until all units are scheduled.
-3. **Present the execution plan** to the user in the work plan confirmation:
-   ```
-   Execution plan:
-     Batch 1 (parallel): user-registration, config-setup
-     Batch 2 (parallel): user-login, password-reset  [after: user-registration]
-     Batch 3: integration-tests                       [after: user-login, password-reset]
-   ```
+1. **Initialize**: All units with no dependencies (`dependsOn: []`) are immediately ready.
+2. **Dispatch**: Pop up to `maxParallelPairs` units from the ready queue and start them concurrently. Each unit follows its full pipeline (TDD or implementer) independently.
+3. **On completion**: When a unit finishes (including all reviews), check all remaining units. Any unit whose dependencies are now ALL complete gets added to the ready queue.
+4. **Repeat**: Dispatch newly ready units immediately, up to the concurrency cap.
+5. **Done**: When the ready queue is empty and no units are in progress, all work is complete.
+
+This means a unit that only depends on one fast-completing unit doesn't wait for other slow units in the same "level" to finish:
+
+```
+Traditional batching:          Eager dispatch:
+
+A ─────┐                      A ─────→ C starts immediately
+       wait                   B ─────────────→ D starts when B done
+B ─────┘                      A done + B done → E starts
+       ↓
+C, D start together            Total time: max(A→C, B→D) + E
+       wait                    (faster when A and B take different times)
+       ↓
+E starts
+
+Total time: max(A,B) + max(C,D) + E
+```
+
+#### Presenting the Execution Plan
+
+For user confirmation, still show the dependency structure as logical levels (for readability), but note that execution is eager:
+
+```
+Execution plan (eager dispatch, max 4 concurrent):
+  Ready immediately: user-registration, config-setup, database-schema
+  After user-registration: user-login
+  After user-registration + config-setup: password-reset
+  After user-login + password-reset: api-docs
+```
 
 #### Concurrent Dispatch
 
-Within each batch, spawn agent teams concurrently (up to `maxParallelPairs`):
-- **TDD units**: Spawn Test Writers simultaneously. As each completes, proceed with its RED → Code Writer → GREEN → Review pipeline independently.
-- **Non-code tasks** (Mode 4): Spawn Implementer subagents simultaneously. As each completes, proceed with its Spec Compliance → Code Quality review pipeline.
-- **Mixed batches**: TDD and non-code tasks in the same batch run concurrently — each follows its own pipeline.
-- Track all concurrent pipelines in the state file.
+When dispatching from the ready queue:
+- **TDD units**: Start the Test Writer. As it completes, proceed through RED → Code Writer → GREEN → three-stage review, all within the same concurrency slot.
+- **Non-code tasks** (Mode 4): Start the Implementer. As it completes, proceed through Spec Compliance → Code Quality review.
+- **Mixed**: TDD and non-code units run concurrently — each follows its own pipeline.
+- Track all in-progress pipelines in the state file. Update the ready queue on each completion.
 
-Wait for ALL units in a batch to complete (including reviews) before starting the next batch.
+A unit occupies one concurrency slot for its entire pipeline (from Test Writer through final review). When it completes, the slot frees for the next ready unit.
 
 #### Configuration
 
 | Key | Default | Description |
 |-----|---------|-------------|
-| `execution.maxParallelPairs` | `3` | Max concurrent agent teams per batch |
-| `execution.parallelMode` | `"auto"` | `"auto"`: parallel when dependency graph allows. `"sequential"`: one unit at a time (useful for debugging or resource-constrained environments). `"parallel"`: force parallel even within dependency levels. |
+| `execution.maxParallelPairs` | `4` | Max concurrent agent pipelines |
+| `execution.parallelMode` | `"eager"` | `"eager"` (default): dispatch as soon as dependencies are met. `"sequential"`: one unit at a time in topological order (useful for debugging or resource-constrained environments). |
 
-When `parallelMode` is `"sequential"`, process units one at a time in topological order. This is slower but avoids file conflicts and reduces concurrent API load.
+When `parallelMode` is `"sequential"`, process units one at a time in dependency order. This is slower but avoids file conflicts and simplifies debugging.
 
 ## Phase 5: Final Review — Verification Before Completion
 

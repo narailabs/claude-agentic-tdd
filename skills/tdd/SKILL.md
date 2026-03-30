@@ -291,7 +291,7 @@ If BLOCKED, create the missing files before proceeding.
 
 ## Phase 4: Agent Team Orchestration
 
-Create an agent team. You (the main session) are the team lead / Team Manager.
+Create an agent team using the `TeamCreate` tool. You (the main session) are the team lead / Team Manager. All agents in this phase MUST be spawned as teammates via `TeamCreate`, not as standalone subagents via the `Agent` tool. Use `SendMessage` to communicate with teammates and receive their results. At cleanup (Phase 7), shut down the team with `TeamDelete`.
 
 ### Execution Loop
 
@@ -305,7 +305,7 @@ For each work unit (respecting dependency order and parallelism):
 
 Read `reference/test-writer-prompt.md` for the full template.
 
-Spawn a Test Writer teammate with a prompt containing:
+Spawn a Test Writer teammate via `TeamCreate` with a prompt containing:
 - The spec-contract for this work unit ONLY
 - Detected framework info (runner, conventions, file patterns)
 - Target test file path(s)
@@ -351,7 +351,7 @@ Record checksums of all test files at this point (for GREEN verification later).
 
 #### Step 4c: Spawn Code Writer
 
-Read `reference/code-writer-prompt.md` for the full template.
+Read `reference/code-writer-prompt.md` for the full template. Spawn via `TeamCreate`.
 
 **CRITICAL — Information Barrier**: The Code Writer prompt must contain ONLY:
 - The test file contents (read from disk, not from Test Writer output)
@@ -387,7 +387,7 @@ Run all three reviews back-to-back without pausing. When one review returns a pa
 
 Read `reference/spec-compliance-reviewer-prompt.md` for the full template.
 
-Spawn a Spec Compliance Reviewer teammate with:
+Spawn a Spec Compliance Reviewer teammate via `TeamCreate` with:
 - The `spec-contract-{unit_id}.md` contents (read from disk)
 - The design summary from state file (if Phase 0 was run)
 - Test file contents (read from disk)
@@ -410,7 +410,7 @@ If COMPLIANT: proceed to adversarial review.
 
 Read `reference/adversarial-reviewer-prompt.md` for the full template.
 
-Spawn an Adversarial Reviewer teammate with:
+Spawn an Adversarial Reviewer teammate via `TeamCreate` with:
 - The `spec-contract-{unit_id}.md` contents (read from disk)
 - Test file contents (read from disk)
 - Implementation file contents (read from disk)
@@ -433,7 +433,7 @@ If the reviewer passes: proceed to code quality review.
 
 Read `reference/code-quality-reviewer-prompt.md` for the full template.
 
-Spawn a Code Quality Reviewer teammate with:
+Spawn a Code Quality Reviewer teammate via `TeamCreate` with:
 - The implementation file contents (read from disk)
 - The test file contents (read from disk)
 - The git diff for this work unit (changes since before the unit started)
@@ -456,7 +456,7 @@ If approved: mark work unit as completed in state file. **This is the ONLY point
 For non-code tasks in plan execution mode, skip the TDD pipeline entirely. Instead:
 
 1. Read `reference/implementer-prompt.md` for the template.
-2. Spawn an Implementer teammate with:
+2. Spawn an Implementer teammate via `TeamCreate` with:
    - The full task text from the plan (pasted inline, NOT a file reference)
    - Context about where this task fits in the overall plan
    - Working directory
@@ -576,7 +576,7 @@ test -f .tdd-state.json && echo "state: OK" || echo "state: MISSING"
 ```
 If any artifact is MISSING, go back and create it (Phase 6 for report, Phase 3 for state).
 
-1. Clean up the agent team (shut down any remaining teammates)
+1. Clean up the agent team using `TeamDelete` (shut down all remaining teammates)
 2. Remove intermediate artifacts: delete all `spec-contract-*.md` files created during the session
 3. Final state file update
 4. Present the report to the user

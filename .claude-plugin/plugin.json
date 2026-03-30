@@ -1,7 +1,7 @@
 {
   "name": "agentic-tdd",
-  "description": "Enforced Test-Driven Development with agent teams — honest tests, blind implementation, adversarial review. Structural enforcement gates, spec analysis for ambiguity detection, autonomous execution with front-loaded planning, and configurable parallelism.",
-  "version": "2.5.0",
+  "description": "Enforced Test-Driven Development with Claude Agent SDK — deterministic TypeScript orchestrator with anti-cheat guardrails. Can't skip reviews (code for-loops), can't modify tests (SDK hooks), can't fabricate results (crypto checksums). Holistic final spec review catches cross-unit gaps.",
+  "version": "3.0.0",
   "author": {
     "name": "NarAI Labs",
     "url": "https://github.com/narailabs"

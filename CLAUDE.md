@@ -43,6 +43,8 @@ Agent teams must be enabled. Add to `.claude/settings.json`:
 | `--config <path>` | Path to a custom `.tdd.config.json` |
 | `--design` | Force the design gate (Phase 0) even for simple specs |
 | `--skip-design` | Skip the design gate entirely |
+| `--parallel <N>` | Max concurrent agent pipelines (default: 4, use 1 for sequential) |
+| `--effort <level>` | Reasoning effort: `medium`, `high` (default), or `max` |
 
 ## Development
 

@@ -43,6 +43,7 @@ Parse `$ARGUMENTS` for:
 - `--design` — force the design gate (Phase 0) even for simple specs
 - `--skip-design` — skip the design gate entirely
 - `--effort <level>` — set reasoning effort for all agents: `medium`, `high` (default), or `max` (opus-only)
+- `--parallel <N>` — max concurrent agent pipelines (default: 4). Use `--parallel 1` for sequential execution.
 
 If no arguments provided, ask the user what they want to implement.
 
@@ -73,6 +74,8 @@ Load configuration in priority order:
    reporting.generateReport: true
    reporting.generateSessionLog: true
    ```
+
+**Flag overrides**: `--parallel <N>` overrides `execution.maxParallelPairs`. `--effort <level>` overrides `execution.effortLevel`. Flags take precedence over `.tdd.config.json` values.
 
 ### Model and Effort Configuration
 

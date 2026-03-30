@@ -40,8 +40,8 @@ The `.tdd-state.json` file tracks session progress for incremental runs. It is g
       "dependsOn": [],
       "complexity": "simple | standard | complex",
       "modelAssignment": {
-        "testWriter": "haiku | sonnet | opus",
-        "codeWriter": "haiku | sonnet | opus",
+        "testWriter": "sonnet | opus",
+        "codeWriter": "sonnet | opus",
         "reviewer": "sonnet | opus"
       },
       "status": "pending | test-writing | red-verification | code-writing | green-verification | adversarial-review | spec-review | completed | failed",

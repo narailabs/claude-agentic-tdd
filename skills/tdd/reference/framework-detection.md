@@ -4,10 +4,9 @@ Auto-detect the project's test framework, runner, and conventions.
 
 ## Detection Priority
 
-1. `.tdd.config.json` explicit config (highest priority)
-2. Project CLAUDE.md `## TDD Configuration` section
-3. Auto-detection from project files
-4. Ask user (fallback)
+1. Project CLAUDE.md `## TDD Configuration` section (highest priority)
+2. Auto-detection from project files
+3. Ask user (fallback)
 
 ## Auto-Detection Rules
 

@@ -40,7 +40,6 @@ Agent teams must be enabled. Add to `.claude/settings.json`:
 | Flag | Description |
 |------|-------------|
 | `--skip-failed` | Skip work units that fail after max retries instead of escalating |
-| `--config <path>` | Path to a custom `.tdd.config.json` |
 | `--design` | Force the design gate (Phase 0) even for simple specs |
 | `--skip-design` | Skip the design gate entirely |
 | `--parallel <N>` | Max concurrent agent pipelines (default: 4, use 1 for sequential) |

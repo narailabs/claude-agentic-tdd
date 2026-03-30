@@ -39,71 +39,46 @@ These apply to EVERY run regardless of mode, complexity, or time pressure. Skipp
 Parse `$ARGUMENTS` for:
 - The specification text (required) — what to implement
 - `--skip-failed` — skip work units that fail after max retries instead of escalating
-- `--config <path>` — path to a custom `.tdd.config.json`
 - `--design` — force the design gate (Phase 0) even for simple specs
 - `--skip-design` — skip the design gate entirely
-- `--effort <level>` — set reasoning effort for all agents: `medium`, `high` (default), or `max` (opus-only)
-- `--parallel <N>` — max concurrent agent pipelines (default: 4). Use `--parallel 1` for sequential execution.
-- `--model-strategy <strategy>` — `auto` (default, complexity-based), `standard` (all sonnet), or `capable` (all opus)
+- `--effort <level>` — reasoning effort: `medium`, `high` (default), or `max`
+- `--parallel <N>` — max concurrent agent pipelines (default: 4). Use `1` for sequential.
+- `--model-strategy <strategy>` — `auto` (default), `standard` (all sonnet), or `capable` (all opus)
 
 If no arguments provided, ask the user what they want to implement.
 
-## Configuration Loading
+## Configuration
 
-Load configuration in priority order:
+All configuration is via flags. If the project CLAUDE.md has a `## TDD Configuration` section, extract test conventions, framework preferences, and custom rules from it.
 
-1. **`.tdd.config.json`** (if exists at project root, or path specified by `--config`):
-   ```bash
-   cat .tdd.config.json 2>/dev/null
-   ```
-   Parse JSON. Apply values over defaults.
+### Defaults
 
-2. **Project CLAUDE.md** (if exists): Look for a `## TDD Configuration` section.
-   Extract test conventions, framework preferences, and any custom rules.
+| Setting | Default | Flag |
+|---------|---------|------|
+| Max parallel pipelines | 4 | `--parallel <N>` |
+| Model strategy | auto | `--model-strategy <auto\|standard\|capable>` |
+| Effort level | high | `--effort <medium\|high\|max>` |
+| Skip failed units | false | `--skip-failed` |
+| Min assertions per test | 1 | — |
+| Max retries per phase | 3 | — |
+| Max mock depth | 2 | — |
+| Flag private method tests | true | — |
 
-3. **Defaults** (flat keys, mapped from nested `.tdd.config.json` structure):
-   ```
-   antiCheat.minAssertionsPerTest: 1
-   antiCheat.maxRetries: 3
-   antiCheat.maxMockDepth: 2
-   antiCheat.flagPrivateMethodTests: true
-   execution.maxParallelPairs: 4
-   execution.parallelMode: "eager"
-   execution.skipFailedAfterRetries: false
-   execution.modelStrategy: "auto"
-   execution.effortLevel: "high"
-   reporting.generateReport: true
-   reporting.generateSessionLog: true
-   ```
+Settings without flags are hardcoded defaults — sensible for all projects.
 
-**Flag overrides**: `--parallel <N>` overrides `execution.maxParallelPairs`. `--effort <level>` overrides `execution.effortLevel`. `--model-strategy <strategy>` overrides `execution.modelStrategy`. Flags take precedence over `.tdd.config.json` values.
+### Model and Effort Assignment
 
-### Model and Effort Configuration
+Each agent is assigned a **model** and **effort** level. The session's model/effort is the ceiling — the skill never escalates beyond it.
 
-Each agent is assigned a **model** and a **reasoning effort** level. The skill inherits the current session's model and effort as the ceiling, then assigns each agent the appropriate level based on task complexity.
+**`--model-strategy auto`** (default): Assess each work unit's complexity, then assign:
+- **Mechanical tasks**: All agents use `sonnet` at configured effort.
+- **Architecture tasks** (ambiguous spec, many deps, design-sensitive): Test Writers and reviewers get `opus` at configured effort. Code Writers stay `sonnet`.
 
-The session's model and effort are the upper bound — the skill never escalates beyond what the session provides. At startup, detect the current session's model and effort to determine the ceiling.
+**`--model-strategy standard`**: All agents use `sonnet` at configured effort.
 
-#### Complexity-Based Assignment
-
-Assess each work unit's complexity, then assign model + effort per agent role:
-
-- **Mechanical/Integration tasks**: All agents use `sonnet`/`high`.
-- **Architecture tasks** (ambiguous spec, many deps, design-sensitive): Test Writers, reviewers, and implementers get `opus`/session-effort (they need deep reasoning). Code Writers and quality reviewers stay `sonnet`/`high` (their work is more mechanical).
-
-The `--effort` flag overrides: `--effort max` gives opus agents max effort (sonnet stays high). `--effort medium` gives all agents medium.
-
-`execution.modelStrategy`: `"auto"` (default, complexity-based), `"standard"` (all sonnet at the configured effort level), or `"capable"` (all opus at the configured effort level).
+**`--model-strategy capable`**: All agents use `opus` at configured effort.
 
 Model and effort assignments are recorded in the state file and displayed in the report.
-
-When loading `.tdd.config.json`, flatten nested keys. Merged config is stored in the state file and passed to all teammates.
-
-Reference these config keys at their decision points:
-- `antiCheat.flagPrivateMethodTests` → RED verification behavior-over-implementation check
-- `antiCheat.maxMockDepth` → RED verification excessive mocking check
-- `reporting.generateReport` → Phase 6 report generation
-- `reporting.generateSessionLog` → Phase 3 session log initialization
 
 ## Entry Point Detection
 
@@ -197,10 +172,9 @@ Store the approved design summary in the state file under `designSummary`. Pass 
 Read `reference/framework-detection.md` for the full detection algorithm.
 
 Quick summary:
-1. Check `.tdd.config.json` for explicit framework config
-2. Check project CLAUDE.md for test conventions
-3. Auto-detect from project files (package.json, pyproject.toml, go.mod, Cargo.toml, etc.)
-4. If detection fails, ask the user for their test command
+1. Check project CLAUDE.md for test conventions
+2. Auto-detect from project files (package.json, pyproject.toml, go.mod, Cargo.toml, etc.)
+3. If detection fails, ask the user for their test command
 
 Store detected framework info: language, test runner, test command, file pattern, source dir, test dir.
 

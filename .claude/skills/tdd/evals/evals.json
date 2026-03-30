@@ -32,7 +32,8 @@
         "Respects dependency order — implements registration before login and password-reset",
         "Each work unit goes through the full RED→GREEN→review cycle independently",
         "Runs a final integration test across all units after individual completion",
-        "The report shows all work units with their individual phase statuses"
+        "The report shows all work units with their individual phase statuses",
+        "Assigns model and effort per agent based on complexity — opus for architecture-sensitive Test Writers and reviewers, sonnet for Code Writers"
       ]
     },
     {
@@ -89,7 +90,8 @@
         "Routes code tasks through the full TDD pipeline (Test Writer → RED → Code Writer → GREEN → Review)",
         "Routes non-code tasks through implementer dispatch (Implementer → Spec Compliance → Code Quality)",
         "Respects dependency ordering — migration before registration, registration before login, config before login, both before docs",
-        "Presents a work plan showing task types and execution batches before proceeding",
+        "Presents a work plan with eager dispatch format showing dependency chains, not rigid batches",
+        "Uses eager dispatch — units start as soon as their specific dependencies complete, not when an entire level finishes",
         "Applies the subagent status protocol (DONE/DONE_WITH_CONCERNS/NEEDS_CONTEXT/BLOCKED) to all agents",
         "Runs a final holistic review across all tasks after individual completion"
       ]
@@ -103,7 +105,7 @@
         "Decomposes into 4 work units with no dependencies between them",
         "Computes a single parallel batch containing all 4 units",
         "Presents the execution plan showing all units run concurrently in Batch 1",
-        "Dispatches multiple Test Writers simultaneously (up to maxParallelPairs config, default 3)",
+        "Dispatches multiple Test Writers simultaneously (up to maxParallelPairs config, default 4)",
         "Each unit independently goes through the full RED→GREEN→review cycle",
         "Applies the three-stage review pipeline: spec compliance → adversarial → code quality",
         "Runs a final integration test after all units complete"

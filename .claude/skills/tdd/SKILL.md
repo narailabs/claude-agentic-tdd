@@ -68,62 +68,20 @@ Load configuration in priority order:
 
 Each agent is assigned a **model** and a **reasoning effort** level. The skill inherits the current session's model and effort as the ceiling, then assigns each agent the appropriate level based on task complexity.
 
-#### Session Detection
-
-At startup, detect the current session's model and effort:
-- If the session is running on **opus with max effort**: the skill can assign opus/max to complex agents and sonnet/high to simpler ones.
-- If the session is running on **sonnet with high effort**: all agents use sonnet/high (no opus available).
-- If the session is running on **opus with high effort**: complex agents get opus/high, simpler ones get sonnet/high.
-
-The session's model and effort are the upper bound — the skill never escalates beyond what the session provides.
+The session's model and effort are the upper bound — the skill never escalates beyond what the session provides. At startup, detect the current session's model and effort to determine the ceiling.
 
 #### Complexity-Based Assignment
 
-The skill assesses each work unit's complexity and assigns model + effort accordingly:
+Assess each work unit's complexity, then assign model + effort per agent role:
 
-| Complexity | Signals | Model | Effort |
-|-----------|---------|-------|--------|
-| **Mechanical** | Isolated functions, clear spec, 1-2 files | `sonnet` | `high` |
-| **Integration** | Multi-file coordination, cross-unit concerns | `sonnet` | `high` |
-| **Architecture** | Ambiguous spec, many dependencies, design-sensitive | `opus` (if available) | session effort (max if session is max) |
+- **Mechanical/Integration tasks**: All agents use `sonnet`/`high`.
+- **Architecture tasks** (ambiguous spec, many deps, design-sensitive): Test Writers, reviewers, and implementers get `opus`/session-effort (they need deep reasoning). Code Writers and quality reviewers stay `sonnet`/`high` (their work is more mechanical).
 
-Within a work unit, different agent roles may get different assignments:
+The `--effort` flag overrides: `--effort max` gives opus agents max effort (sonnet stays high). `--effort medium` gives all agents medium.
 
-| Role | Mechanical | Integration | Architecture |
-|------|-----------|-------------|--------------|
-| Test Writer | sonnet/high | sonnet/high | opus/session-effort |
-| Code Writer | sonnet/high | sonnet/high | sonnet/high |
-| Spec Compliance Reviewer | sonnet/high | sonnet/high | opus/session-effort |
-| Adversarial Reviewer | sonnet/high | sonnet/high | opus/session-effort |
-| Code Quality Reviewer | sonnet/high | sonnet/high | sonnet/high |
-| Implementer (Mode 4) | sonnet/high | sonnet/high | opus/session-effort |
+`execution.modelStrategy`: `"auto"` (default, complexity-based), `"standard"` (all sonnet/high), or `"capable"` (all opus/session-effort).
 
-The reasoning: Test Writers and reviewers benefit most from deep reasoning (writing good behavioral tests, catching cheating, evaluating spec compliance). Code Writers and quality reviewers do more mechanical work (make tests pass, check naming/structure) and don't need the same reasoning depth.
-
-#### Override with `--effort`
-
-The `--effort` flag overrides the session-inherited effort level:
-```
-/tdd "build auth system" --effort max
-```
-
-| Flag | Effect |
-|------|--------|
-| `--effort max` | opus agents → max, sonnet agents → high |
-| `--effort high` | All agents → high (default) |
-| `--effort medium` | All agents → medium (faster, less thorough) |
-
-#### Config Key
-
-`execution.modelStrategy` controls the assignment strategy:
-
-| Strategy | Behavior |
-|----------|----------|
-| `"auto"` (default) | Assess complexity per work unit, assign as described above |
-| `"standard"` | All agents use `sonnet`/`high` regardless of complexity |
-| `"capable"` | All agents use `opus`/session-effort regardless of complexity |
-
-The model and effort assignment per agent are recorded in the state file and displayed in the report.
+Model and effort assignments are recorded in the state file and displayed in the report.
 
 When loading `.tdd.config.json`, flatten nested keys. Merged config is stored in the state file and passed to all teammates.
 
@@ -285,49 +243,7 @@ Execution plan (eager dispatch, max 4 concurrent):
 Proceed? [confirm/modify/cancel]
 ```
 
-For Mode 4 (plan execution), the plan may include mixed types:
-
-```
-## TDD Work Plan
-
-Framework: vitest (auto-detected)
-Mode: plan-execution
-Parallel: auto (max 3 concurrent)
-Work units: 5 (3 code, 2 task)
-
-### Unit 1: database-schema [task]
-Spec: Create migration for users and sessions tables
-Files: migrations/001_create_users.sql
-Dependencies: none
-
-### Unit 2: user-registration [code]
-Spec: Create user with email validation, password hashing
-Files: src/__tests__/user-registration.test.ts → src/user-registration.ts
-Dependencies: [database-schema]
-
-### Unit 3: env-config [task]
-Spec: Set up environment config with JWT secret and DB connection
-Files: src/config.ts, .env.example
-Dependencies: none
-
-### Unit 4: user-login [code]
-Spec: Authenticate user, return JWT token
-Files: src/__tests__/user-login.test.ts → src/user-login.ts
-Dependencies: [user-registration, env-config]
-
-### Unit 5: api-docs [task]
-Spec: Generate OpenAPI spec for auth endpoints
-Files: docs/openapi.yaml
-Dependencies: [user-registration, user-login]
-
-Execution plan (eager dispatch, max 4 concurrent):
-  Ready immediately: database-schema, env-config (parallel)
-  After database-schema: user-registration
-  After user-registration + env-config: user-login
-  After user-registration + user-login: api-docs
-
-Proceed? [confirm/modify/cancel]
-```
+For Mode 4 (plan execution), the plan may include mixed types — use `[code]` and `[task]` labels. The execution plan shows eager dispatch dependency chains instead of rigid batches.
 
 Wait for user confirmation before proceeding. If the user wants to modify, adjust and re-present.
 
@@ -534,34 +450,7 @@ Build a DAG from the `dependsOn` fields, then maintain a **ready queue**:
 4. **Repeat**: Dispatch newly ready units immediately, up to the concurrency cap.
 5. **Done**: When the ready queue is empty and no units are in progress, all work is complete.
 
-This means a unit that only depends on one fast-completing unit doesn't wait for other slow units in the same "level" to finish:
-
-```
-Traditional batching:          Eager dispatch:
-
-A ─────┐                      A ─────→ C starts immediately
-       wait                   B ─────────────→ D starts when B done
-B ─────┘                      A done + B done → E starts
-       ↓
-C, D start together            Total time: max(A→C, B→D) + E
-       wait                    (faster when A and B take different times)
-       ↓
-E starts
-
-Total time: max(A,B) + max(C,D) + E
-```
-
-#### Presenting the Execution Plan
-
-For user confirmation, still show the dependency structure as logical levels (for readability), but note that execution is eager:
-
-```
-Execution plan (eager dispatch, max 4 concurrent):
-  Ready immediately: user-registration, config-setup, database-schema
-  After user-registration: user-login
-  After user-registration + config-setup: password-reset
-  After user-login + password-reset: api-docs
-```
+This means a unit that depends on one fast unit starts immediately when that unit finishes, without waiting for slower sibling units.
 
 #### Concurrent Dispatch
 
@@ -608,125 +497,17 @@ Do NOT accept these from any agent (including yourself):
 
 ## Phase 6: Report Generation
 
-Read `reference/report-format.md` for templates.
+Read `reference/report-format.md` for the full templates. Generate `tdd-report.md` (human-readable summary with per-unit phase statuses) and `tdd-session.jsonl` (structured event log).
 
-Generate two files:
+## Error Handling and Debugging
 
-### tdd-report.md
-```markdown
-# TDD Session Report
+Read `reference/error-handling.md` for the full error handling procedures (agent crashes, test command failures, permission errors, interrupted sessions) and the systematic debugging protocol (4-phase: root cause → pattern analysis → hypothesis test → verification).
 
-## Summary
-- Date: [timestamp]
-- Specification: [original user spec]
-- Framework: [detected framework]
-- Work units: [N completed] / [N total]
-- Total tests: [count]
-- Total assertions: [count]
-- Anti-cheat violations: [count]
-- Adversarial review: [pass/fail counts]
-
-## Work Units
-
-### [Unit Name]
-- Status: completed/failed
-- Test file: [path]
-- Implementation file: [path]
-- Tests: [N passing]
-- Assertions: [N]
-- RED verification: passed (attempt [N])
-- GREEN verification: passed (attempt [N])
-- Adversarial review: passed
-- Findings: [any reviewer notes]
-
-[repeat for each unit]
-
-## Anti-Cheat Log
-[any violations encountered and how they were resolved]
-
-## Recommendations
-[any suggestions for improving test coverage or code quality]
-```
-
-### tdd-session.jsonl
-One JSON object per line with: timestamp, event type, work unit ID, data.
-
-## Error Handling
-
-Handle errors at every phase:
-
-### Agent Team Creation Failure
-If creating the agent team fails (env var not set, API error):
-- Show clear error message with fix instructions
-- Save state file so user can retry after fixing the issue
-
-### Teammate Crash or Timeout
-If a teammate stops unexpectedly:
-- Log the error in the session log
-- Attempt to re-spawn the teammate (counts as a retry)
-- After maxRetries: escalate to user or skip (per config)
-
-### Test Command Not Found
-If the detected test command fails with "command not found":
-- Ask the user for the correct test command
-- Update the state file with the corrected command
-- Retry the verification
-
-### File Permission Errors
-If unable to read/write test or implementation files:
-- Report the specific path and error
-- Ask user to fix permissions
-
-### Interrupted Session
-If the session is interrupted mid-flow:
-- State file preserves progress (atomic writes)
-- On next `/tdd` invocation, detect state file and offer resume
-- Any in-progress teammate work is lost; restart from the current phase
-
-### Team Cleanup on Error
-Always attempt team cleanup even if the session errors:
-- Shut down any remaining teammates
-- Update state file with error status
-- Generate partial report if any work completed
-
-## Systematic Debugging Protocol
-
-When tests fail during GREEN verification or final review and the Code Writer cannot fix them after `maxRetries`, switch to systematic debugging instead of immediately escalating.
-
-### The 4-Phase Debug Process
-
-**Phase D1: Root Cause Investigation**
-- Read the failing test output carefully. What is the actual vs expected value?
-- Trace the code path from test input to the point of failure.
-- Check: is this a logic bug, a dependency issue, a type mismatch, or a missing feature?
-
-**Phase D2: Pattern Analysis**
-- Is this the same failure as a previous retry? If the Code Writer keeps making the same mistake, the problem is likely architectural.
-- Are multiple tests failing for the same root cause? Fix the root cause, not the symptoms.
-- After 3+ failed fixes for the same issue: STOP. The design may be wrong. Consider going back to Phase 0 for this work unit.
-
-**Phase D3: Hypothesis and Test**
-- Form a specific hypothesis: "The bug is in X because Y"
-- **Write a regression test first** that isolates the bug. This test must fail, confirming the hypothesis.
-- Only then fix the implementation.
-
-**Phase D4: Verification**
-- Run the new regression test — it should pass.
-- Run ALL tests for this work unit — they should all pass.
-- Run the full test suite — no regressions in other units.
-
-### When to Trigger
-
-- Code Writer fails 2+ times on the same test
-- GREEN verification fails with non-obvious errors
-- Integration tests fail in Phase 5
-
-### Escalation
-
-If Phase D2 suggests an architectural problem:
-1. Log the findings
-2. Present to the user: "This unit's implementation is fighting the design. The test expects X but the architecture makes X difficult because Y. Options: (a) revise the design, (b) revise the test expectations, (c) accept increased complexity."
-3. Wait for user decision before proceeding.
+Key principles:
+- Always save state on error so the user can resume
+- After `maxRetries`, switch to systematic debugging before escalating
+- If the Code Writer keeps failing on the same test, the design may be wrong — escalate to user with options
+- Always attempt team cleanup even on error
 
 ## Phase 7: Cleanup
 

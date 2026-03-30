@@ -233,7 +233,7 @@ Before presenting the plan, scan the specification for ambiguities that could le
 4. **Missing edge cases**: What happens at boundaries the spec doesn't address?
 5. **Dependency graph vs API mismatch**: Does the dependency graph claim a relationship that no method actually uses?
 
-Include any findings in the work plan presented to the user as a **Spec Clarifications Needed** section. The user can resolve them before work begins, preventing wasted implementation effort.
+If findings exist, include them in the work plan as a **Spec Clarifications Needed** section so the user can resolve them before work begins. If no issues are found, skip this section and proceed straight to implementation — do not ask the user to confirm a clean spec.
 
 ### User Confirmation
 

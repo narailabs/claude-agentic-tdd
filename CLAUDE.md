@@ -45,6 +45,7 @@ Agent teams must be enabled. Add to `.claude/settings.json`:
 | `--skip-design` | Skip the design gate entirely |
 | `--parallel <N>` | Max concurrent agent pipelines (default: 4, use 1 for sequential) |
 | `--effort <level>` | Reasoning effort: `medium`, `high` (default), or `max` |
+| `--model-strategy <s>` | `auto` (default), `standard` (all sonnet), `capable` (all opus) |
 
 ## Development
 

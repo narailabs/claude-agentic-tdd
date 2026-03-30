@@ -44,6 +44,7 @@ Parse `$ARGUMENTS` for:
 - `--skip-design` — skip the design gate entirely
 - `--effort <level>` — set reasoning effort for all agents: `medium`, `high` (default), or `max` (opus-only)
 - `--parallel <N>` — max concurrent agent pipelines (default: 4). Use `--parallel 1` for sequential execution.
+- `--model-strategy <strategy>` — `auto` (default, complexity-based), `standard` (all sonnet), or `capable` (all opus)
 
 If no arguments provided, ask the user what they want to implement.
 
@@ -75,7 +76,7 @@ Load configuration in priority order:
    reporting.generateSessionLog: true
    ```
 
-**Flag overrides**: `--parallel <N>` overrides `execution.maxParallelPairs`. `--effort <level>` overrides `execution.effortLevel`. Flags take precedence over `.tdd.config.json` values.
+**Flag overrides**: `--parallel <N>` overrides `execution.maxParallelPairs`. `--effort <level>` overrides `execution.effortLevel`. `--model-strategy <strategy>` overrides `execution.modelStrategy`. Flags take precedence over `.tdd.config.json` values.
 
 ### Model and Effort Configuration
 
@@ -92,7 +93,7 @@ Assess each work unit's complexity, then assign model + effort per agent role:
 
 The `--effort` flag overrides: `--effort max` gives opus agents max effort (sonnet stays high). `--effort medium` gives all agents medium.
 
-`execution.modelStrategy`: `"auto"` (default, complexity-based), `"standard"` (all sonnet/high), or `"capable"` (all opus/session-effort).
+`execution.modelStrategy`: `"auto"` (default, complexity-based), `"standard"` (all sonnet at the configured effort level), or `"capable"` (all opus at the configured effort level).
 
 Model and effort assignments are recorded in the state file and displayed in the report.
 

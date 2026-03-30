@@ -280,7 +280,7 @@ Create an agent team. You (the main session) are the team lead / Team Manager.
 
 ### Execution Loop
 
-**Flow control**: Each unit's pipeline (4a→4g) runs as a continuous flow. Do not pause between steps, do not wait for user input, do not treat status updates as conversational turns. When a subagent completes, immediately proceed to the next step. The user should only be consulted on errors or escalations — not on forward progress.
+**Flow control**: User interaction is front-loaded — Phase 0 (design) and Phase 2 (confirmation) are the planned interaction points. Once the user confirms the work plan, Phases 3-7 are fully autonomous. Do not pause between steps, do not wait for user input, do not treat status updates as conversational turns. When a subagent completes, immediately proceed to the next step in the same turn. The only reasons to stop and consult the user during execution are: (1) a subagent is BLOCKED after retries, (2) a verification failure the skill cannot resolve, (3) missing information that wasn't covered during planning.
 
 For each work unit (respecting dependency order and parallelism):
 

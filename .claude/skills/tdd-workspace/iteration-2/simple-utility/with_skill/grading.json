@@ -1,0 +1,73 @@
+{
+  "expectations": [
+    {
+      "text": "Detects or asks about the test framework before writing tests",
+      "passed": true,
+      "evidence": "Phase 1 Framework Detection (line 191): 'Read reference/framework-detection.md for the full detection algorithm.' Checks .tdd.config.json, CLAUDE.md, then auto-detects from package.json/pyproject.toml/etc. Framework info stored before any test writing begins."
+    },
+    {
+      "text": "Presents a work decomposition plan and asks for user confirmation before proceeding",
+      "passed": true,
+      "evidence": "Phase 2 (line 225): 'Present the decomposition to the user' with formatted plan showing framework, mode, units, files, dependencies. Ends with 'Proceed? [confirm/modify/cancel]'. Line 259: 'Wait for user confirmation before proceeding.'"
+    },
+    {
+      "text": "Test Writer creates test files BEFORE any implementation code exists",
+      "passed": true,
+      "evidence": "Step 4a (line 287) spawns Test Writer first. Step 4c (line 335) spawns Code Writer only after RED verification passes. The execution order is structurally enforced: 4a → 4b → 4c → 4d."
+    },
+    {
+      "text": "Tests fail initially (RED phase verified) — the skill explicitly checks for non-zero exit code",
+      "passed": true,
+      "evidence": "Step 4b (line 307): 'Read reference/anti-cheat.md for the full verification rules.' Mode 1 RED verification Check 2 in anti-cheat.md: 'Run the test command and verify non-zero exit code. If exit code == 0 → ANTI-CHEAT VIOLATION.'"
+    },
+    {
+      "text": "Code Writer receives test file contents read from disk, not from Test Writer output (information barrier)",
+      "passed": true,
+      "evidence": "Step 4c (line 339): 'CRITICAL — Information Barrier: The Code Writer prompt must contain ONLY: The test file contents (read from disk, not from Test Writer output), The spec-contract contents (read from disk, not from Test Writer output).'"
+    },
+    {
+      "text": "Code Writer does NOT modify test files (checksum verification mentioned or performed)",
+      "passed": true,
+      "evidence": "Step 4b (line 333): 'Record checksums of all test files at this point.' Step 4d (line 358): 'Verify test files unchanged: Compare test file checksums against the ones recorded after RED verification. If ANY test file was modified → anti-cheat violation.'"
+    },
+    {
+      "text": "All tests pass after implementation (GREEN phase)",
+      "passed": true,
+      "evidence": "Step 4d (line 360): 'Run tests: Execute the test command. ALL tests must pass (exit code == 0).' With retry logic up to maxRetries."
+    },
+    {
+      "text": "An adversarial review step is performed on the test+implementation pair",
+      "passed": true,
+      "evidence": "NEW structural gates enforce this. Line 285: 'Unit completion requires ALL of: Test Writer → RED → Code Writer → GREEN → Spec Compliance → Adversarial → Code Quality.' Line 363: 'After GREEN passes: the unit is NOT complete. Proceed immediately to the three-stage review pipeline.' Line 365: 'Review Pipeline (MANDATORY — every unit, no exceptions).' Step 4f (line 390): Adversarial Review with full template reference. Line 431: 'This is the ONLY point where a unit may be marked complete' (after 4g, which requires 4f to pass first)."
+    },
+    {
+      "text": "A tdd-report.md or equivalent summary is generated at the end",
+      "passed": true,
+      "evidence": "NEW IRON LAW at Phase 6 (line 523): 'IRON LAW: No cleanup (Phase 7) without a report. Generate the report BEFORE any cleanup.' Lines 529-533: bash verification 'test -f tdd-report.md'. Phase 7 pre-check (line 547-552): 'test -f tdd-report.md && echo report: OK || echo report: MISSING'. Two verification layers prevent skipping."
+    },
+    {
+      "text": "The skill does NOT skip any verification steps even for simple specs",
+      "passed": true,
+      "evidence": "Non-Negotiable Requirements (lines 27-35): 'These apply to EVERY run regardless of mode, complexity, or time pressure. Skipping any is a skill failure.' Lists state file, session log, three-stage review pipeline, report, RED Check 5 as mandatory. No complexity-based exemptions exist in the skill. The Review Pipeline header says 'MANDATORY — every unit, no exceptions.'"
+    }
+  ],
+  "summary": {
+    "passed": 10,
+    "failed": 0,
+    "total": 10,
+    "pass_rate": 1.0
+  },
+  "eval_feedback": {
+    "suggestions": [
+      {
+        "assertion": "An adversarial review step is performed on the test+implementation pair",
+        "reason": "This expectation previously passed in iteration-1's spec analysis but FAILED in real execution. The spec now has stronger structural gates (MANDATORY header, ONLY completion point, Non-Negotiable Requirements). Whether these are strong enough to prevent skipping in actual execution is the key question — spec analysis alone cannot fully answer it."
+      },
+      {
+        "assertion": "A tdd-report.md or equivalent summary is generated at the end",
+        "reason": "Same as above — passed spec analysis before, failed execution. Now has IRON LAW + two bash verification checks. Stronger, but real execution is the true test."
+      }
+    ],
+    "overall": "All expectations pass at the spec level. The critical question is whether the new structural gates (MANDATORY headers, IRON LAW, bash verification commands, HARD GATE) are strong enough to survive real execution. Iteration-1 also passed spec analysis at 100% but got C+ in practice. The added verification commands (test -f) are the strongest new mechanism — they create physical checkpoints rather than relying on prose."
+  }
+}

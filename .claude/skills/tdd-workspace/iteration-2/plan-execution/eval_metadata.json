@@ -1,0 +1,1 @@
+{"eval_id": 6, "eval_name": "plan-execution", "prompt": "/tdd execute docs/plan.md — 5 tasks with mixed code/non-code and dependency ordering"}

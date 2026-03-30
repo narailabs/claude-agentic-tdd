@@ -1,0 +1,44 @@
+{
+  "expectations": [
+    {
+      "text": "Triggers the design gate (Phase 0) due to ambiguity",
+      "passed": true,
+      "evidence": "Phase 0 trigger conditions (line 144): 'The spec is ambiguous about data flow, ownership, or error handling' — the prompt says 'idk the details yet' and is vague about features. Also: 'The spec involves external integrations (APIs, databases, auth providers)' — payment processing involves external payment providers. Multiple triggers met."
+    },
+    {
+      "text": "Asks clarifying questions about the payment system — does NOT assume specific technologies or providers",
+      "passed": true,
+      "evidence": "Design Refinement step 1 (line 158): 'Ask the user 1-3 targeted questions about ambiguities.' Examples show targeted questions about specific unknowns, not assumptions. The spec is intentionally vague ('like credit cards and stuff', 'refunds maybe?') — the skill directs asking about these gaps."
+    },
+    {
+      "text": "Asks questions one at a time, not as a dump of 10 questions at once",
+      "passed": true,
+      "evidence": "Design Refinement step 1 (line 158): 'Ask one at a time — do not dump a questionnaire.' This is an explicit instruction in the skill."
+    },
+    {
+      "text": "Does NOT start writing code or tests before clarifying the spec",
+      "passed": true,
+      "evidence": "Phase 0 HARD GATE (line 187): 'No decomposition (Phase 2) until the design is approved.' Since Phase 2 precedes Phase 3 (state init) and Phase 4 (agent orchestration/code writing), no code or tests can be written before the design gate passes."
+    },
+    {
+      "text": "Proposes design approaches with trade-offs (e.g., Stripe vs custom, sync vs async processing)",
+      "passed": true,
+      "evidence": "Design Refinement step 2 (line 163): 'Present 2-3 options with pros/cons for at least one key architectural decision. Every spec complex enough to trigger the design gate has at least one meaningful trade-off.' Example shows payment-relevant trade-offs (JWT vs session-based, but analogous to Stripe vs custom, sync vs async)."
+    },
+    {
+      "text": "Waits for user approval of the design before decomposing into work units",
+      "passed": true,
+      "evidence": "Design Refinement step 4 (line 185): 'User approval: Proceed with this design? [confirm/modify/cancel].' Line 187: 'HARD GATE: No decomposition (Phase 2) until the design is approved. If the user modifies, iterate. If cancelled, stop.'"
+    }
+  ],
+  "summary": {
+    "passed": 6,
+    "failed": 0,
+    "total": 6,
+    "pass_rate": 1.0
+  },
+  "eval_feedback": {
+    "suggestions": [],
+    "overall": "All expectations pass. The design gate was already well-specified in iteration-1 and performed well in real execution. No changes were made to Phase 0 in this update."
+  }
+}

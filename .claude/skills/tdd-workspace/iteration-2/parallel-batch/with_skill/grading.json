@@ -1,0 +1,54 @@
+{
+  "expectations": [
+    {
+      "text": "Decomposes into 4 work units with no dependencies between them",
+      "passed": true,
+      "evidence": "Phase 2 (line 205): Decompose into independent work units with dependsOn fields. The prompt specifies 'All endpoints are independent — no dependencies between them.' Each unit gets dependsOn: []."
+    },
+    {
+      "text": "Computes a single parallel batch containing all 4 units",
+      "passed": true,
+      "evidence": "Eager dispatch (line 470): 'All units with no dependencies (dependsOn: []) are immediately ready.' With 4 independent units and maxParallelPairs default of 4 (line 491), all 4 are dispatched in the first round."
+    },
+    {
+      "text": "Presents the execution plan showing all units run concurrently in Batch 1",
+      "passed": true,
+      "evidence": "Phase 2 user confirmation (line 250): 'Execution plan (eager dispatch, max 4 concurrent): Ready immediately: [all units].' With no dependencies, all units are listed as ready immediately."
+    },
+    {
+      "text": "Dispatches multiple Test Writers simultaneously (up to maxParallelPairs config, default 4)",
+      "passed": true,
+      "evidence": "Concurrent Dispatch (line 480): 'TDD units: Start the Test Writer. As it completes, proceed through RED → Code Writer → GREEN → three-stage review.' Line 491: maxParallelPairs default 4. With 4 independent units, all 4 Test Writers start simultaneously."
+    },
+    {
+      "text": "Each unit independently goes through the full RED→GREEN→review cycle",
+      "passed": true,
+      "evidence": "Line 285: 'Unit completion requires ALL of: Test Writer → RED → Code Writer → GREEN → Spec Compliance → Adversarial → Code Quality.' Line 486: 'A unit occupies one concurrency slot for its entire pipeline (from Test Writer through final review).' Each unit follows the complete pipeline independently."
+    },
+    {
+      "text": "Applies the three-stage review pipeline: spec compliance → adversarial → code quality",
+      "passed": true,
+      "evidence": "THIS IS THE CRITICAL EXPECTATION that failed in real execution (iteration-1). The updated skill adds multiple enforcement layers: (1) Non-Negotiable Requirements #3 (line 33): 'Every completed unit MUST pass Spec Compliance → Adversarial → Code Quality review.' (2) Line 363: 'After GREEN passes: the unit is NOT complete. Proceed immediately to the three-stage review pipeline.' (3) Line 365: 'Review Pipeline (MANDATORY — every unit, no exceptions)' as a section header. (4) Line 431: 'This is the ONLY point where a unit may be marked complete' — after code quality review passes. (5) Line 433: 'No exceptions. No skipping.' At the spec level, these structural gates are strong. Whether they survive real execution with 4 concurrent pipelines remains the key question."
+    },
+    {
+      "text": "Runs a final integration test after all units complete",
+      "passed": true,
+      "evidence": "Phase 5 (line 501): 'Run the FULL test suite (all test files together) to check for integration issues.' Line 499: 'IRON LAW: No completion claim without fresh verification evidence.'"
+    }
+  ],
+  "summary": {
+    "passed": 7,
+    "failed": 0,
+    "total": 7,
+    "pass_rate": 1.0
+  },
+  "eval_feedback": {
+    "suggestions": [
+      {
+        "assertion": "Applies the three-stage review pipeline: spec compliance → adversarial → code quality",
+        "reason": "This is the single most important expectation — it's the one that failed catastrophically (F grade) in real execution despite passing spec analysis in iteration-1. The updated skill adds 5 enforcement layers (Non-Negotiable Requirements, MANDATORY header, completion gate, transition directive, ORDERING RULE). These are meaningfully stronger than iteration-1's instructions. However, spec analysis CANNOT definitively predict whether these gates will survive real execution under time/throughput pressure. A real execution eval is needed to validate."
+      }
+    ],
+    "overall": "All expectations pass at spec level. The parallel-batch eval is the key litmus test for the updated skill — it's where the review pipeline was most thoroughly skipped in real execution. The structural gates added are the strongest available in a prompt-based system, but the true test is real execution."
+  }
+}

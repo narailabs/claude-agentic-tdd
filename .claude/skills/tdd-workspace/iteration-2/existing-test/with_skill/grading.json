@@ -1,0 +1,44 @@
+{
+  "expectations": [
+    {
+      "text": "Detects that the user provided an existing test file (entry point mode 3)",
+      "passed": true,
+      "evidence": "Entry Point Detection (line 110): 'User-provided test: User says \"implement against this test...\" or provides a failing test file — skip Test Writer, go directly to Code Writer.' The prompt '/tdd implement against src/__tests__/calculator.test.ts' matches this pattern."
+    },
+    {
+      "text": "Skips the Test Writer phase — does NOT rewrite or replace the user's test file",
+      "passed": true,
+      "evidence": "Mode 3 adaptations (line 122): 'Test Writer phase entirely' is listed under skips. Step 4a (Test Writer) is bypassed for Mode 3."
+    },
+    {
+      "text": "Reads the existing test file from disk and passes contents to the Code Writer",
+      "passed": true,
+      "evidence": "Step 4c (line 339): 'The test file contents (read from disk, not from Test Writer output).' In Mode 3, the existing test file is read from disk and passed to Code Writer with the information barrier maintained."
+    },
+    {
+      "text": "Still performs GREEN verification (checksum check, all tests pass)",
+      "passed": true,
+      "evidence": "Mode 3 skips Test Writer, RED verification, Design gate, and User confirmation. GREEN verification is NOT in the skip list. Step 4d GREEN verification applies to all modes — checksums recorded from the original test file, then verified after Code Writer completes."
+    },
+    {
+      "text": "Still performs adversarial review on the test+implementation pair",
+      "passed": true,
+      "evidence": "Line 365: 'Review Pipeline (MANDATORY — every unit, no exceptions).' Mode 3's skip list (line 122-126) only skips: Test Writer, RED verification, Design gate, User confirmation. The review pipeline is NOT skipped. Non-Negotiable Requirement #3 (line 33): 'Every completed unit MUST pass Spec Compliance → Adversarial → Code Quality review. A unit is NOT complete until all three pass.' No mode-specific exemption exists."
+    },
+    {
+      "text": "Does NOT ask the user to confirm a work decomposition plan for a single provided test",
+      "passed": true,
+      "evidence": "Mode 3 adaptations (line 126): 'User confirmation (single test file — the user's intent is already clear)' is listed under skips."
+    }
+  ],
+  "summary": {
+    "passed": 6,
+    "failed": 0,
+    "total": 6,
+    "pass_rate": 1.0
+  },
+  "eval_feedback": {
+    "suggestions": [],
+    "overall": "All expectations pass. Mode 3 has a clear skip list (Test Writer, RED, Design, Confirmation) and the review pipeline explicitly says 'no exceptions.' The updated skill's Non-Negotiable Requirements reinforce this."
+  }
+}

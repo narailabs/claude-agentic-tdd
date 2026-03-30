@@ -1,15 +1,18 @@
 # agentic-tdd
 
-Enforced Test-Driven Development plugin for Claude Code using the Agent SDK.
+Enforced Test-Driven Development plugin for Claude Code using agent teams.
 
 ## Installation
 
 ```bash
-# From marketplace
 claude plugin install agentic-tdd@narai
+```
 
-# From GitHub
-claude plugin install narailabs/claude-agentic-tdd
+## Prerequisites
+
+Agent teams must be enabled:
+```json
+{ "env": { "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1" } }
 ```
 
 ## Usage
@@ -27,51 +30,44 @@ claude plugin install narailabs/claude-agentic-tdd
 
 | Flag | Description |
 |------|-------------|
-| `--skip-failed` | Skip work units that fail after max retries instead of escalating |
-| `--design` | Force the design gate (Phase 0) even for simple specs |
-| `--skip-design` | Skip the design gate entirely |
-| `--parallel <N>` | Max concurrent agent pipelines (default: 4, use 1 for sequential) |
-| `--effort <level>` | Reasoning effort: `low`, `medium`, `high` (default), or `max` |
+| `--skip-failed` | Skip units that fail after max retries |
+| `--design` | Force the design gate (Phase 0) |
+| `--skip-design` | Skip the design gate |
+| `--parallel <N>` | Max concurrent agent pipelines (default: 4) |
+| `--effort <level>` | `low`, `medium`, `high` (default), `max` |
 | `--model-strategy <s>` | `auto` (default), `standard` (all sonnet), `capable` (all opus) |
 | `--resume` | Resume from existing .tdd-state.json |
 
-## Architecture
+## Architecture (v4.0)
 
-v3.0 uses a TypeScript orchestrator powered by the Claude Agent SDK. The pipeline is deterministic — orchestration logic is code (for-loops, not prompts), verification is done by Node.js (crypto checksums, subprocess test execution), and SDK hooks prevent test file modification.
+Hybrid: SKILL.md orchestrates agent teams, TypeScript scripts enforce verification.
 
 ```
-TypeScript Orchestrator (deterministic)     Claude Agents (creative, via SDK)
-─────────────────────────────────────      ──────────────────────────────────
-Pipeline sequencing (for loops)        →   Test Writer
-State file management (JSON)           →   Code Writer (info barrier enforced)
-Checksum verification (crypto)         →   Spec Compliance Reviewer
-Test execution (subprocess)            →   Adversarial Reviewer
-Assertion scanning (regex)             →   Code Quality Reviewer
-Hook enforcement (PreToolUse)          →   Final Holistic Reviewer
-Report generation (template)           →   Decomposer / Design Gate
+SKILL.md (orchestration)              TypeScript scripts (enforcement)
+─────────────────────────             ──────────────────────────────────
+TeamCreate agent team             →   scripts/verify-red.ts (exit 0/1)
+SendMessage to Test Writer        →   scripts/verify-green.ts (exit 0/1)
+SendMessage to Code Writer        →   scripts/update-state.ts
+SendMessage to 3 Reviewers        →   scripts/check-state.ts (anti-fabrication)
+TeamDelete at cleanup             →   scripts/generate-report.ts
+Read tool for info barrier        →   scripts/init-state.ts
 ```
+
+Script output is JSON to stdout + exit code. Both the model and the user see it in the conversation — verification results cannot be fabricated.
 
 ## Development
 
 ```
-src/                          # TypeScript orchestrator
-  cli.ts                      # Entry point
-  orchestrator.ts             # Main pipeline (Phases 0-7)
-  types.ts                    # All types and enums
-  state.ts                    # .tdd-state.json management
-  verification.ts             # Anti-cheat: checksums, assertions, test execution
-  hooks.ts                    # PreToolUse hooks for enforcement
-  agents/                     # Agent dispatch modules
-    base.ts                   # SDK query() wrapper
-    testWriter.ts, codeWriter.ts, reviewers.ts, etc.
 skills/tdd/
-  SKILL.md                    # Thin wrapper (~60 lines)
-  reference/                  # Prompt templates (loaded by prompts.ts)
-```
-
-### Running locally
-
-```bash
-npm install
-npx tsx src/cli.ts "implement a capitalize function" --parallel 1
+  SKILL.md                    # Orchestration (~370 lines)
+  scripts/                    # 8 verification scripts (called via Bash)
+    verify-red.ts, verify-green.ts, update-state.ts, check-state.ts,
+    init-state.ts, detect-framework.ts, generate-report.ts, log-event.ts
+  reference/                  # 12 prompt templates (loaded via Read tool)
+src/                          # Shared TypeScript library
+  verification.ts             # Core anti-cheat (checksums, assertions, tests)
+  types.ts                    # All types and enums
+  state.ts, sessionLog.ts     # State management
+  detection.ts, prompts.ts    # Framework detection, template loading
+  report.ts                   # Report generation
 ```

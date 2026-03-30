@@ -1,0 +1,49 @@
+{
+  "expectations": [
+    {
+      "text": "Detects entry point mode 2 — existing codebase coverage mode",
+      "passed": true,
+      "evidence": "Entry Point Detection (line 109): 'Existing codebase: User says \"add tests to...\" or \"add test coverage for...\"' The prompt '/tdd add test coverage for src/utils/' matches this pattern exactly."
+    },
+    {
+      "text": "Reads and analyzes the existing source files in src/utils/ before writing tests",
+      "passed": true,
+      "evidence": "Mode 2 adaptations (line 117): 'Test Writer: Receives spec-contracts derived from reading existing source files (reverse-engineered behavior specs, not forward requirements).' The Test Writer must read existing code to generate characterization tests."
+    },
+    {
+      "text": "Skips the design gate because --skip-design flag was passed",
+      "passed": true,
+      "evidence": "Arguments (line 44): '--skip-design — skip the design gate entirely.' Phase 0 skip conditions (line 154): 'User passes --skip-design.' Mode 2 also skips by default (line 152): 'Existing codebase coverage mode — unless --design is explicitly passed.'"
+    },
+    {
+      "text": "Generates tests derived from reading specific source file contents (function signatures, return types, edge cases) — not just generic tests",
+      "passed": true,
+      "evidence": "Mode 2 Test Writer (line 117): 'Receives spec-contracts derived from reading existing source files (reverse-engineered behavior specs).' The spec-contracts are based on actual source code analysis, not generic patterns."
+    },
+    {
+      "text": "Describes or resolves the tension between RED verification and existing implementations (characterization tests pass immediately against existing code)",
+      "passed": true,
+      "evidence": "Mode 2 RED verification (line 118): 'RED verification: Adapted — see Coverage Mode RED Verification below.' Anti-cheat.md Coverage Mode section explains: 'In coverage mode, the implementation already exists, so well-written characterization tests PASS immediately. This is expected — not an anti-cheat violation.'"
+    },
+    {
+      "text": "Demonstrates the adapted hide-and-restore RED verification procedure for coverage mode (temporarily hide impl, verify import failures, restore, verify pass)",
+      "passed": true,
+      "evidence": "Step 4b (line 318-323): 'Hide the implementation: Temporarily rename the source file(s).' 'Run tests: They should fail with import/module errors.' 'Restore the implementation: Rename back.' 'Run tests again: They should PASS.' Anti-cheat.md lines 127-155 detail the full 4-step procedure with bash commands."
+    },
+    {
+      "text": "Produces a report showing coverage additions",
+      "passed": true,
+      "evidence": "Phase 6 IRON LAW (line 523): 'No cleanup (Phase 7) without a report.' Report template in reference/report-format.md includes per-unit phase statuses, files created (tests + implementation), and final integration check results. Phase 7 pre-check (line 547) verifies report exists on disk."
+    }
+  ],
+  "summary": {
+    "passed": 7,
+    "failed": 0,
+    "total": 7,
+    "pass_rate": 1.0
+  },
+  "eval_feedback": {
+    "suggestions": [],
+    "overall": "All expectations pass. Coverage mode has well-defined adapted procedures documented in both SKILL.md and anti-cheat.md."
+  }
+}

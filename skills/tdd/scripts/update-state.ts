@@ -1,0 +1,119 @@
+#!/usr/bin/env npx tsx
+import { parseArgs } from "node:util";
+import { StateManager } from "../../../src/state.js";
+import {
+  UnitStatus,
+  type RedVerification,
+  type GreenVerification,
+  type SpecComplianceResult,
+  type AdversarialResult,
+  type CodeQualityResult,
+} from "../../../src/types.js";
+
+const UNIT_STATUS_MAP: Record<string, UnitStatus> = {
+  PENDING: UnitStatus.PENDING,
+  TEST_WRITING: UnitStatus.TEST_WRITING,
+  RED_VERIFICATION: UnitStatus.RED_VERIFICATION,
+  CODE_WRITING: UnitStatus.CODE_WRITING,
+  GREEN_VERIFICATION: UnitStatus.GREEN_VERIFICATION,
+  SPEC_REVIEW: UnitStatus.SPEC_REVIEW,
+  ADVERSARIAL_REVIEW: UnitStatus.ADVERSARIAL_REVIEW,
+  CODE_QUALITY_REVIEW: UnitStatus.CODE_QUALITY_REVIEW,
+  COMPLETED: UnitStatus.COMPLETED,
+  FAILED: UnitStatus.FAILED,
+};
+
+const { values } = parseArgs({
+  options: {
+    "working-dir": { type: "string" },
+    "unit-id": { type: "string" },
+    status: { type: "string" },
+    "red-json": { type: "string" },
+    "green-json": { type: "string" },
+    "spec-compliance-json": { type: "string" },
+    "adversarial-json": { type: "string" },
+    "code-quality-json": { type: "string" },
+    "test-files": { type: "string" },
+    "impl-files": { type: "string" },
+  },
+  strict: true,
+});
+
+const workingDir = values["working-dir"];
+const unitId = values["unit-id"];
+
+if (!workingDir || !unitId) {
+  console.log(
+    JSON.stringify({ error: "Missing required arguments: --working-dir, --unit-id" }),
+  );
+  process.exit(1);
+}
+
+const mgr = new StateManager(workingDir);
+const state = mgr.loadExisting();
+
+if (state === null) {
+  console.log(JSON.stringify({ error: "No state file found in working directory" }));
+  process.exit(1);
+}
+
+const unit = state.workUnits.find((u) => u.id === unitId);
+
+if (!unit) {
+  console.log(JSON.stringify({ error: `Work unit not found: ${unitId}` }));
+  process.exit(1);
+}
+
+// Apply updates
+if (values.status !== undefined) {
+  const mapped = UNIT_STATUS_MAP[values.status];
+  if (mapped === undefined) {
+    console.log(
+      JSON.stringify({
+        error: `Unknown status: ${values.status}. Expected one of: ${Object.keys(UNIT_STATUS_MAP).join(", ")}`,
+      }),
+    );
+    process.exit(1);
+  }
+  unit.status = mapped;
+}
+
+if (values["red-json"] !== undefined) {
+  unit.redVerification = JSON.parse(values["red-json"]) as RedVerification;
+}
+
+if (values["green-json"] !== undefined) {
+  unit.greenVerification = JSON.parse(values["green-json"]) as GreenVerification;
+}
+
+if (values["spec-compliance-json"] !== undefined) {
+  unit.specCompliance = JSON.parse(values["spec-compliance-json"]) as SpecComplianceResult;
+}
+
+if (values["adversarial-json"] !== undefined) {
+  unit.adversarial = JSON.parse(values["adversarial-json"]) as AdversarialResult;
+}
+
+if (values["code-quality-json"] !== undefined) {
+  unit.codeQuality = JSON.parse(values["code-quality-json"]) as CodeQualityResult;
+}
+
+if (values["test-files"] !== undefined) {
+  unit.testFiles = values["test-files"].split(",").map((f) => f.trim());
+}
+
+if (values["impl-files"] !== undefined) {
+  unit.implFiles = values["impl-files"].split(",").map((f) => f.trim());
+}
+
+mgr.save(state);
+
+console.log(
+  JSON.stringify({
+    updated: true,
+    unitId: unit.id,
+    status: unit.status,
+    updatedAt: state.updatedAt,
+  }),
+);
+process.exit(0);

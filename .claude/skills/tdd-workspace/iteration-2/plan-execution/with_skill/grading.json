@@ -1,0 +1,64 @@
+{
+  "expectations": [
+    {
+      "text": "Detects entry point mode 4 (plan execution)",
+      "passed": true,
+      "evidence": "Entry Point Detection (line 111): 'Plan execution: User says \"execute plan...\" or provides a plan file.' The prompt '/tdd execute docs/plan.md' matches this pattern."
+    },
+    {
+      "text": "Classifies tasks into code (registration, login) and non-code (migration, config, docs) types",
+      "passed": true,
+      "evidence": "Mode 4 Task classification (line 130): 'For each task, determine if it is a code task (needs implementation + tests) or a non-code task (migrations, configs, docs, scripts, infra).' The prompt explicitly states which are code and non-code tasks."
+    },
+    {
+      "text": "Routes code tasks through the full TDD pipeline (Test Writer → RED → Code Writer → GREEN → Review)",
+      "passed": true,
+      "evidence": "Mode 4 (line 131): 'Code tasks → full TDD pipeline (Test Writer → RED → Code Writer → GREEN → Review).' Line 285: 'Unit completion requires ALL of: Test Writer → RED → Code Writer → GREEN → Spec Compliance → Adversarial → Code Quality.' Line 365: 'Review Pipeline (MANDATORY — every unit, no exceptions).'"
+    },
+    {
+      "text": "Routes non-code tasks through implementer dispatch (Implementer → Spec Compliance → Code Quality)",
+      "passed": true,
+      "evidence": "Mode 4 (line 132): 'Non-code tasks → implementer dispatch (Implementer → Spec Compliance → Code Quality Review).' Step 4h (line 445): 'If DONE or DONE_WITH_CONCERNS: proceed to spec compliance review (Step 4e), then code quality review (Step 4g). Skip adversarial review (it's TDD-specific).'"
+    },
+    {
+      "text": "Respects dependency ordering — migration before registration, registration before login, config before login, both before docs",
+      "passed": true,
+      "evidence": "Mode 4 (line 133): 'Dependency ordering: Respect dependencies from the plan.' Eager dispatch (line 468-474): builds DAG from dependsOn fields, initializes ready queue with no-dep units, dispatches as dependencies complete. The dependency chain in the prompt would be correctly ordered."
+    },
+    {
+      "text": "Presents a work plan with eager dispatch format showing dependency chains, not rigid batches",
+      "passed": true,
+      "evidence": "Phase 2 (line 250): 'Execution plan (eager dispatch, max 4 concurrent): Ready immediately: ... After X: ...' Line 257: 'The execution plan shows eager dispatch dependency chains instead of rigid batches.'"
+    },
+    {
+      "text": "Uses eager dispatch — units start as soon as their specific dependencies complete, not when an entire level finishes",
+      "passed": true,
+      "evidence": "Parallel Execution (line 464): 'The skill uses eager dispatch — each unit starts as soon as its specific dependencies complete, not when an entire batch finishes.' Line 476: 'a unit that depends on one fast unit starts immediately when that unit finishes, without waiting for slower sibling units.'"
+    },
+    {
+      "text": "Applies the subagent status protocol (DONE/DONE_WITH_CONCERNS/NEEDS_CONTEXT/BLOCKED) to all agents",
+      "passed": true,
+      "evidence": "Subagent Status Protocol (line 449-460): Defines all four statuses with meanings and actions. Mode 4 (line 136): 'Status handling: All subagents (Test Writer, Code Writer, Implementer) report status.' Step 4h (line 444): 'Handle the implementer's status (see Subagent Status Protocol below).' However, this is a spec-level pass — the protocol was defined in iteration-1 too but wasn't implemented in real execution."
+    },
+    {
+      "text": "Runs a final holistic review across all tasks after individual completion",
+      "passed": true,
+      "evidence": "Phase 5 (line 497-507): 'After ALL work units complete: Run the FULL test suite, Verify pristine output, Review all generated code holistically, Cross-unit integration check.' IRON LAW: 'No completion claim without fresh verification evidence.'"
+    }
+  ],
+  "summary": {
+    "passed": 9,
+    "failed": 0,
+    "total": 9,
+    "pass_rate": 1.0
+  },
+  "eval_feedback": {
+    "suggestions": [
+      {
+        "assertion": "Applies the subagent status protocol (DONE/DONE_WITH_CONCERNS/NEEDS_CONTEXT/BLOCKED) to all agents",
+        "reason": "This passed spec analysis in iteration-1 but was not implemented in real execution. The protocol is documented but has no structural enforcement mechanism (no HARD GATE, no verification command). It relies on the model reading and following the protocol instructions. Consider adding a checkpoint that verifies status was received and handled."
+      }
+    ],
+    "overall": "All expectations pass at spec level. The subagent status protocol remains the weakest enforcement point — it's documented but lacks structural gates."
+  }
+}

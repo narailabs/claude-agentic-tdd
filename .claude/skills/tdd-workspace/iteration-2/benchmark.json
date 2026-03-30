@@ -1,0 +1,205 @@
+{
+  "metadata": {
+    "skill_name": "tdd",
+    "skill_path": "skills/tdd/SKILL.md",
+    "executor_model": "claude-opus-4-6",
+    "timestamp": "2026-03-30T08:00:00Z",
+    "iteration": 2,
+    "changes": "Added structural gates: Non-Negotiable Requirements, HARD GATE on Phase 3, MANDATORY review pipeline header, IRON LAW on Phase 6, Phase 7 pre-check, strengthened RED Check 5",
+    "evals_run": [
+      "simple-utility",
+      "auth-system",
+      "existing-test",
+      "coverage-mode",
+      "ambiguous-spec",
+      "plan-execution",
+      "parallel-batch"
+    ],
+    "runs_per_configuration": 1
+  },
+  "runs": [
+    {
+      "eval_id": 1,
+      "eval_name": "simple-utility",
+      "configuration": "with_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 10,
+        "failed": 0,
+        "total": 10,
+        "time_seconds": 0,
+        "tokens": 0,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {"text": "Detects or asks about the test framework before writing tests", "passed": true, "evidence": "Phase 1 Framework Detection: reads reference/framework-detection.md, checks .tdd.config.json, CLAUDE.md, then auto-detects."},
+        {"text": "Presents a work decomposition plan and asks for user confirmation before proceeding", "passed": true, "evidence": "Phase 2: formatted plan with 'Proceed? [confirm/modify/cancel]'. Waits for confirmation."},
+        {"text": "Test Writer creates test files BEFORE any implementation code exists", "passed": true, "evidence": "Step 4a (Test Writer) → 4b (RED) → 4c (Code Writer). Structurally enforced order."},
+        {"text": "Tests fail initially (RED phase verified)", "passed": true, "evidence": "Anti-cheat.md Check 2: verify non-zero exit code. If pass → ANTI-CHEAT VIOLATION."},
+        {"text": "Code Writer receives test file contents read from disk (information barrier)", "passed": true, "evidence": "Step 4c: 'CRITICAL — Information Barrier: read from disk, not from Test Writer output.'"},
+        {"text": "Code Writer does NOT modify test files (checksum verification)", "passed": true, "evidence": "Step 4b records checksums. Step 4d verifies unchanged. If modified → anti-cheat violation."},
+        {"text": "All tests pass after implementation (GREEN phase)", "passed": true, "evidence": "Step 4d: 'ALL tests must pass (exit code == 0).' With retry logic."},
+        {"text": "An adversarial review step is performed", "passed": true, "evidence": "NEW: 5 enforcement layers — Non-Negotiable #3, MANDATORY header, transition directive, completion gate, ordering rule."},
+        {"text": "A tdd-report.md is generated at the end", "passed": true, "evidence": "NEW: Phase 6 IRON LAW + bash 'test -f' verification + Phase 7 pre-check."},
+        {"text": "The skill does NOT skip any verification steps", "passed": true, "evidence": "NEW: Non-Negotiable Requirements: 'EVERY run regardless of mode, complexity, or time pressure.'"}
+      ],
+      "notes": ["Expectations 8-10 have stronger enforcement vs iteration-1"]
+    },
+    {
+      "eval_id": 2,
+      "eval_name": "auth-system",
+      "configuration": "with_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 9,
+        "failed": 0,
+        "total": 9
+      },
+      "expectations": [
+        {"text": "Triggers the design gate (Phase 0)", "passed": true, "evidence": "3+ features + external integrations + ambiguity. Multiple triggers met."},
+        {"text": "Produces a design summary", "passed": true, "evidence": "Phase 0 template + HARD GATE on decomposition."},
+        {"text": "Decomposes into at least 3 work units", "passed": true, "evidence": "Phase 2 example shows registration, login, password-reset."},
+        {"text": "Identifies dependencies between units", "passed": true, "evidence": "Dependency Analysis section + example."},
+        {"text": "Respects dependency order", "passed": true, "evidence": "Eager dispatch DAG: registration first, then login/password-reset."},
+        {"text": "Each work unit goes through the full RED→GREEN→review cycle", "passed": true, "evidence": "NEW: 'Unit completion requires ALL of' + MANDATORY review pipeline."},
+        {"text": "Runs a final integration test", "passed": true, "evidence": "Phase 5: full test suite + cross-unit check."},
+        {"text": "Report shows all work units with phase statuses", "passed": true, "evidence": "NEW: IRON LAW + pre-check. Report template has per-unit phase tables."},
+        {"text": "Assigns model and effort per complexity", "passed": true, "evidence": "Complexity-Based Assignment: opus for architecture, sonnet for mechanical."}
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 3,
+      "eval_name": "existing-test",
+      "configuration": "with_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 6,
+        "failed": 0,
+        "total": 6
+      },
+      "expectations": [
+        {"text": "Detects entry point mode 3", "passed": true, "evidence": "Mode 3 pattern match: 'implement against this test.'"},
+        {"text": "Skips the Test Writer phase", "passed": true, "evidence": "Mode 3 skip list includes Test Writer."},
+        {"text": "Reads existing test file from disk for Code Writer", "passed": true, "evidence": "Information barrier: read from disk."},
+        {"text": "Still performs GREEN verification", "passed": true, "evidence": "GREEN verification not in Mode 3 skip list."},
+        {"text": "Still performs adversarial review", "passed": true, "evidence": "NEW: Reviews not in Mode 3 skip list. MANDATORY 'no exceptions' applies."},
+        {"text": "Does NOT ask for work plan confirmation", "passed": true, "evidence": "Mode 3 skips: User confirmation."}
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 4,
+      "eval_name": "coverage-mode",
+      "configuration": "with_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 7,
+        "failed": 0,
+        "total": 7
+      },
+      "expectations": [
+        {"text": "Detects entry point mode 2", "passed": true, "evidence": "Mode 2 pattern: 'add test coverage for.'"},
+        {"text": "Reads and analyzes existing source files", "passed": true, "evidence": "Test Writer gets reverse-engineered behavior specs from source."},
+        {"text": "Skips design gate (--skip-design)", "passed": true, "evidence": "Flag + Mode 2 default skip."},
+        {"text": "Generates tests from specific source contents", "passed": true, "evidence": "Spec-contracts derived from reading existing source files."},
+        {"text": "Resolves RED/existing-impl tension", "passed": true, "evidence": "Coverage Mode RED Verification in anti-cheat.md explains adapted procedure."},
+        {"text": "Demonstrates hide-and-restore RED procedure", "passed": true, "evidence": "4-step: hide → fail → restore → pass. Full bash commands in anti-cheat.md."},
+        {"text": "Produces report showing coverage additions", "passed": true, "evidence": "NEW: IRON LAW + pre-check enforce report generation."}
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 5,
+      "eval_name": "ambiguous-spec",
+      "configuration": "with_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 6,
+        "failed": 0,
+        "total": 6
+      },
+      "expectations": [
+        {"text": "Triggers design gate due to ambiguity", "passed": true, "evidence": "Ambiguity + external integrations triggers."},
+        {"text": "Asks clarifying questions without assuming technologies", "passed": true, "evidence": "1-3 targeted questions about ambiguities."},
+        {"text": "Asks questions one at a time", "passed": true, "evidence": "'Ask one at a time — do not dump a questionnaire.'"},
+        {"text": "Does NOT start code before clarifying", "passed": true, "evidence": "HARD GATE: no decomposition until design approved."},
+        {"text": "Proposes design approaches with trade-offs", "passed": true, "evidence": "'Present 2-3 options with pros/cons.'"},
+        {"text": "Waits for user approval", "passed": true, "evidence": "'Proceed with this design? [confirm/modify/cancel].' HARD GATE."}
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 6,
+      "eval_name": "plan-execution",
+      "configuration": "with_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 9,
+        "failed": 0,
+        "total": 9
+      },
+      "expectations": [
+        {"text": "Detects entry point mode 4", "passed": true, "evidence": "Mode 4 pattern: 'execute plan.'"},
+        {"text": "Classifies tasks into code and non-code types", "passed": true, "evidence": "Task classification in Mode 4 section."},
+        {"text": "Routes code tasks through full TDD pipeline", "passed": true, "evidence": "Mode 4: 'Code tasks → full TDD pipeline.' Plus NEW unit completion criteria."},
+        {"text": "Routes non-code tasks through implementer dispatch", "passed": true, "evidence": "Step 4h: implementer → spec compliance → code quality."},
+        {"text": "Respects dependency ordering", "passed": true, "evidence": "DAG-based eager dispatch respects plan dependencies."},
+        {"text": "Presents eager dispatch format", "passed": true, "evidence": "Dependency chains, not rigid batches."},
+        {"text": "Uses eager dispatch", "passed": true, "evidence": "'each unit starts as soon as its specific dependencies complete.'"},
+        {"text": "Applies subagent status protocol", "passed": true, "evidence": "Protocol defined. Spec-level pass but no structural gate."},
+        {"text": "Runs final holistic review", "passed": true, "evidence": "Phase 5: full suite + holistic review + integration check."}
+      ],
+      "notes": ["Subagent status protocol has no structural enforcement — weakest point"]
+    },
+    {
+      "eval_id": 7,
+      "eval_name": "parallel-batch",
+      "configuration": "with_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 7,
+        "failed": 0,
+        "total": 7
+      },
+      "expectations": [
+        {"text": "Decomposes into 4 independent work units", "passed": true, "evidence": "Phase 2: 4 units with dependsOn: []."},
+        {"text": "Single parallel batch", "passed": true, "evidence": "All no-dep, maxParallelPairs=4. All dispatch immediately."},
+        {"text": "Execution plan shows concurrent dispatch", "passed": true, "evidence": "'Ready immediately: [all units].'"},
+        {"text": "Multiple Test Writers simultaneously", "passed": true, "evidence": "4 slots, 4 units = all parallel."},
+        {"text": "Each unit gets full RED→GREEN→review cycle", "passed": true, "evidence": "NEW: 'Unit completion requires ALL of' full pipeline."},
+        {"text": "Three-stage review pipeline applied", "passed": true, "evidence": "CRITICAL: NEW 5 enforcement layers — Non-Negotiable #3, transition directive, MANDATORY header, completion gate, ordering rule. Previously F in real execution."},
+        {"text": "Final integration test", "passed": true, "evidence": "Phase 5: full suite run."}
+      ],
+      "notes": ["Three-stage review is the critical test. 5 enforcement layers vs iteration-1's single mention. Real execution needed to validate."]
+    }
+  ],
+  "run_summary": {
+    "with_skill": {
+      "pass_rate": {"mean": 1.0, "stddev": 0.0},
+      "total_expectations": 54,
+      "total_passed": 54,
+      "total_failed": 0
+    },
+    "delta": {
+      "pass_rate": "+0.00 (both iterations pass at spec level)",
+      "enforcement_strength": "Significantly stronger — 8 structural gates added vs 0 in iteration-1"
+    }
+  },
+  "analyst_observations": [
+    "CRITICAL: Spec-level pass rate is identical to iteration-1 (100%). This is expected — the skill already described all these behaviors. The problem was execution compliance, not specification.",
+    "The meaningful delta is enforcement strength, not pass rate. Iteration-2 adds: 3 bash verification commands (test -f), 2 IRON LAW declarations, 1 HARD GATE, 1 MANDATORY section header, and 5 reinforcement points for the review pipeline.",
+    "Highest-confidence improvement: Report generation (IRON LAW + 2 bash checks). The model would have to actively ignore a failing bash command to skip this.",
+    "Medium-confidence: Review pipeline (5 prose enforcement layers, but no bash verification possible since reviews are agent spawns). The 'ONLY point where a unit may be marked complete' after 4g is the strongest single gate.",
+    "Lowest-confidence: Subagent status protocol (documented but no structural gate).",
+    "RECOMMENDATION: A real execution eval (running /tdd on an actual project) is the only way to validate these changes. Spec analysis hit 100% in both iterations but iteration-1 got C+ in practice."
+  ]
+}

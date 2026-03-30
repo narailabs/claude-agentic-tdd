@@ -6,77 +6,364 @@ description: >
   /tdd command, (2) user says "implement X with tests" or "TDD" or "test-driven",
   (3) adding test coverage to existing code with TDD approach, (4) implementing
   against a user-provided failing test, (5) executing an implementation plan with
-  mixed code and non-code tasks.
+  mixed code and non-code tasks. Requires CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1.
 ---
 
 # Agentic TDD
 
-Enforced Test-Driven Development powered by a TypeScript orchestrator using the Claude Agent SDK.
-The orchestrator inherits authentication from the active Claude Code session and controls the
-pipeline deterministically — code loops enforce every phase, SDK hooks prevent test modification,
-and crypto checksums verify file integrity.
+Enforced Test-Driven Development using Claude Code agent teams and TypeScript
+verification scripts. Creative work (writing tests, writing code, reviewing)
+runs in agent teammates. Deterministic checkpoints (RED/GREEN verification,
+state management, checksums) run as scripts via Bash. This separation means
+the model cannot fabricate verification results — script output is in the
+conversation and speaks for itself.
 
-## Invocation
+## Prerequisites
 
-When this skill triggers, run the orchestrator via Bash. The orchestrator inherits OAuth from
-the current Claude Code session automatically.
+Before anything else, verify the environment:
 
-Determine the plugin root directory (where this SKILL.md lives — go up from `skills/tdd/` to
-the repo root). Then invoke:
+1. Check `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS` is set to `1`. If not, tell
+   the user to enable it and stop.
+2. Confirm we are in a git repository (run `git rev-parse --is-inside-work-tree`).
+   TDD state files need a working directory root.
 
+## Plugin Root
+
+Scripts live in the plugin, not the user's project. Determine `{plugin_root}`
+by going up from this SKILL.md's location (`skills/tdd/`) to the directory
+containing `package.json`. Store it — every script call uses it.
+
+All script invocations follow this pattern:
 ```bash
-cd {plugin_root} && npx tsx src/cli.ts {user_spec} {flags}
+cd {plugin_root} && npx tsx skills/tdd/scripts/{script}.ts --working-dir {user_cwd} [args...]
 ```
 
-Where `{user_spec}` is the specification from `$ARGUMENTS` (quoted), and `{flags}` are any
-flags the user passed. The orchestrator runs in the user's current working directory but loads
-its source from the plugin root.
+Where `{user_cwd}` is the user's current working directory (where their code lives).
 
-Example — if the user says `/tdd implement a user auth system --parallel 2`:
+## Arguments
+
+Parse `$ARGUMENTS` for:
+- **Spec text**: the feature description (everything not a flag)
+- `--skip-failed`: skip units that fail after max retries instead of escalating
+- `--design`: force Phase 0 design gate even for simple specs
+- `--skip-design`: skip Phase 0 entirely
+- `--effort <level>`: reasoning effort (`low`, `medium`, `high`, `max`)
+- `--parallel <N>`: max concurrent unit pipelines (default 4)
+- `--model-strategy <s>`: `auto`, `standard`, `capable`
+- `--resume`: resume from existing `.tdd-state.json`
+
+## Phase 0: Design Gate (Optional, Conversational)
+
+**Why**: Complex specs need clarification before decomposition. Ambiguity here
+compounds into wrong tests and wrong code downstream.
+
+Analyze the spec. The design gate is needed when: 3+ distinct features, external
+integrations, or ambiguous requirements. Apply flag overrides:
+- `--skip-design` => skip entirely
+- `--design` => force even for simple specs
+
+If triggered:
+1. Ask the user one clarifying question at a time (do not dump a list)
+2. Propose trade-offs where the spec is ambiguous
+3. Synthesize a design summary once alignment is reached
+4. Store the design summary for later phases
+
+## Phase 1: Framework Detection (Script)
+
+**Why**: The pipeline needs to know which test runner and command to use. The
+script inspects package.json, pyproject.toml, go.mod, Cargo.toml, etc.
+
 ```bash
-cd /path/to/plugin && CWD=$(pwd) npx tsx src/cli.ts "implement a user auth system" --parallel 2
+cd {plugin_root} && npx tsx skills/tdd/scripts/detect-framework.ts --working-dir {user_cwd} --spec "{spec}"
 ```
 
-The orchestrator handles everything autonomously from here: framework detection, decomposition,
-agent dispatch, verification, reviews, and report generation. Stream the output to the user.
+Read the JSON output. It returns `{framework, entryMode}`. If `framework` is
+null, ask the user for the test command and language. Store the framework info
+and entry mode for all subsequent phases.
 
-If the orchestrator exits with code 0: present the report summary to the user.
-If it exits with code 1: show the error output and suggest `--resume` to continue.
+## Phase 2: Work Decomposition (Model Reasoning)
 
-## Flags
+**Why**: A monolithic spec produces monolithic tests. Decomposition creates
+focused, independently verifiable units.
 
-| Flag | Description | Default |
-|------|-------------|---------|
-| `--skip-failed` | Skip units that fail after retries | false |
-| `--design` | Force design gate (Phase 0) | false |
-| `--skip-design` | Skip design gate | false |
-| `--effort <level>` | `low`, `medium`, `high`, `max` | high |
-| `--parallel <N>` | Max concurrent agent pipelines | 4 |
-| `--model-strategy <s>` | `auto`, `standard` (all sonnet), `capable` (all opus) | auto |
-| `--resume` | Resume from .tdd-state.json | false |
+1. Analyze the spec and design summary (if any)
+2. Scan for contradictions, ambiguous terms, and undefined relationships. If
+   found, include them as "Spec Clarifications Needed" in the plan.
+3. Produce work units, each with:
+   - `id`: short kebab-case identifier
+   - `name`: human-readable name
+   - `specContract`: detailed behavioral contract for this unit
+   - `unitType`: `"code"` or `"task"` (non-code work like configs, migrations)
+   - `dependsOn`: list of unit IDs this depends on
+   - `testFiles`: paths for test files to create
+   - `implFiles`: paths for implementation files to create
+   - `complexity`: `"mechanical"`, `"standard"`, or `"architecture"`
+4. Present the work plan to the user and wait for confirmation
 
-## What Happens Inside
+## Phase 3: State Initialization (Script)
 
-The TypeScript orchestrator runs 8 phases as deterministic code:
+**Why**: The state file enables resume after interruption and provides the
+data source for the final report.
 
-0. **Design Gate** (optional) — clarifying questions + trade-offs (interactive via stdin/stdout)
-1. **Framework Detection** — auto-detect from package.json, pyproject.toml, go.mod, etc.
-2. **Work Decomposition** — spec analysis for ambiguities, decompose into units, user confirms
-3. **State Initialization** — .tdd-state.json + tdd-session.jsonl (asserts existence before Phase 4)
-4. **Agent Team Orchestration** — per unit, enforced by code:
-   - Test Writer → RED verification (crypto checksums) → Code Writer (SDK hooks block test edits) → GREEN verification → Spec Compliance Review → Adversarial Review → Code Quality Review
-   - Each review is a real `query()` SDK call with parsed verdict
-   - Retry loops with configurable max retries
-   - Async parallel execution with semaphore concurrency control
-5. **Final Review** — full test suite + **holistic spec compliance** (opus agent checks FULL spec against ALL code)
-6. **Report Generation** — tdd-report.md built from state file data (refuses if any units still pending)
-7. **Cleanup** — delete spec-contracts, present report, suggest next steps
+```bash
+cd {plugin_root} && npx tsx skills/tdd/scripts/init-state.ts \
+  --working-dir {user_cwd} \
+  --spec "{spec}" \
+  --entry-mode "{mode}" \
+  --framework-json '{...}' \
+  --work-units-json '[...]' \
+  --force
+```
+
+Pass `--design-summary "{summary}"` if Phase 0 ran. Pass `--config-json '{...}'`
+to override defaults (e.g., maxRetries, maxParallelPairs from flags).
+
+Verify exit 0 and that the output confirms `stateFile` and `logFile` were created.
+
+## Phase 4: Agent Team Orchestration
+
+**Create the team**: Use `TeamCreate` to create a team named `"tdd-session"`.
+
+**Flow control**: Once the user confirms the plan, execution is fully autonomous.
+Do not pause between steps or wait for user input. Only stop for: blocked agents,
+unresolvable failures after max retries, or missing information that only the
+user can provide.
+
+Process work units respecting dependency order. Units whose `dependsOn` are all
+completed can run concurrently, up to `--parallel` concurrent pipelines.
+
+For each work unit, execute steps 4a through 4g:
+
+### Step 4a: Test Writer
+
+1. Use the Read tool to load `reference/test-writer-prompt.md` from the plugin
+2. Extract the template block (between the ``` markers)
+3. Fill all placeholders: `{spec_contract}`, `{language}`, `{test_runner}`,
+   `{test_command}`, `{test_file_paths}`, `{min_assertions}`, `{unit_id}`,
+   `{project_conventions_from_claude_md}`
+4. Dispatch a teammate using the Agent tool with `team_name: "tdd-session"`.
+   Give it tools: Read, Write, Glob, Grep, Bash. Send the filled prompt.
+5. Wait for completion
+6. Verify test files and `spec-contract-{unit.id}.md` exist on disk
+7. Log the event:
+```bash
+cd {plugin_root} && npx tsx skills/tdd/scripts/log-event.ts \
+  --working-dir {user_cwd} --event "test-writer.completed" --unit-id "{id}"
+```
+
+### Step 4b: RED Verification (Anti-Cheat Checkpoint)
+
+**Why**: Tests must actually fail before implementation exists. If they pass
+already, they prove nothing. The script runs the tests and checks for real
+assertion failures, not just syntax errors.
+
+```bash
+cd {plugin_root} && npx tsx skills/tdd/scripts/verify-red.ts \
+  --working-dir {user_cwd} \
+  --test-files "{comma_separated_files}" \
+  --test-command "{cmd}" \
+  --language "{lang}" \
+  --entry-mode "{mode}"
+```
+
+- **Exit 0**: Tests fail as expected. Extract `testFileChecksums` from the JSON
+  output and store them — these are needed for GREEN verification to prove the
+  Code Writer did not modify test files.
+- **Exit 1**: Read the failure reason from JSON. Re-prompt the Test Writer with
+  the error. Retry up to maxRetries (3).
+
+Update state after each attempt:
+```bash
+cd {plugin_root} && npx tsx skills/tdd/scripts/update-state.ts \
+  --working-dir {user_cwd} --unit-id "{id}" --status "RED_VERIFICATION" \
+  --red-json '{...}'
+```
+
+### Step 4c: Code Writer (Information Barrier)
+
+**Why**: The Code Writer must work from the test files on disk, not from the
+Test Writer's conversation. This information barrier ensures the implementation
+is driven by the tests alone, not by shared context.
+
+1. Use the **Read tool** to read the test files from disk
+2. Use the **Read tool** to read `spec-contract-{unit.id}.md` from disk
+3. Use the Read tool to load `reference/code-writer-prompt.md` from the plugin
+4. Fill the template with the disk-read contents: `{test_file_contents_verbatim}`,
+   `{spec_contract_file_contents}`, `{language}`, `{test_runner}`, `{test_command}`,
+   `{impl_file_paths}`, `{project_conventions_from_claude_md}`
+5. Dispatch a teammate using the Agent tool with `team_name: "tdd-session"`.
+   Give it tools: Read, Write, Glob, Grep, Bash. Send the filled prompt.
+6. The prompt MUST NOT contain any Test Writer reasoning, approach, or history
+7. Wait for completion
+
+### Step 4d: GREEN Verification (Anti-Cheat Checkpoint)
+
+**Why**: Two things must be true: tests pass, and test files are unchanged.
+The checksum comparison catches a Code Writer that "cheats" by weakening tests.
+
+```bash
+cd {plugin_root} && npx tsx skills/tdd/scripts/verify-green.ts \
+  --working-dir {user_cwd} \
+  --test-files "{comma_separated_files}" \
+  --test-command "{cmd}" \
+  --checksums-json '{stored_checksums_from_red}'
+```
+
+- **Exit 0**: Tests pass and test file checksums match RED checksums. Proceed.
+- **Exit 1, `testFilesUnchanged: false`**: Anti-cheat violation. The Code Writer
+  modified test files. The checksum proof is in the conversation and cannot be
+  disputed. Re-prompt the Code Writer: restore original test files and fix the
+  implementation instead.
+- **Exit 1, `testsPassed: false`**: Tests still failing. Re-prompt the Code
+  Writer with the test output. Retry up to maxRetries.
+- **Exit 1, `skipMarkersFound` non-empty**: Code Writer added skip/ignore
+  markers. Anti-cheat violation. Re-prompt to remove them.
+
+Update state after each attempt:
+```bash
+cd {plugin_root} && npx tsx skills/tdd/scripts/update-state.ts \
+  --working-dir {user_cwd} --unit-id "{id}" --status "GREEN_VERIFICATION" \
+  --green-json '{...}'
+```
+
+### Step 4e: Spec Compliance Review
+
+**Why**: Passing tests do not guarantee the spec is met. Tests may be incomplete,
+or the implementation may satisfy tests while missing requirements.
+
+1. Use the Read tool to read spec-contract, test files, and impl files from disk
+2. Use the Read tool to load `reference/spec-compliance-reviewer-prompt.md`
+3. Fill the template: `{spec_contract}`, `{design_summary}`, `{test_file_contents}`,
+   `{impl_file_contents}`, `{unit_name}`
+4. Dispatch a reviewer teammate using the Agent tool with `team_name: "tdd-session"`.
+   Give it read-only tools: Read, Glob, Grep.
+5. Parse the response for `COMPLIANT` or `NON-COMPLIANT`
+6. If `NON-COMPLIANT`: send blocking issues back to the Code Writer (or Test
+   Writer if tests are incomplete). After fixes, **re-run this review** — do
+   not skip the re-review.
+
+### Step 4f: Adversarial Review
+
+**Why**: The adversarial reviewer tries to break the tests. It catches hardcoded
+returns, shallow implementations, mock exploitation, and weak assertions that
+the spec compliance review does not look for.
+
+1. Use the Read tool to read spec-contract, test files, and impl files from disk
+2. Use the Read tool to load `reference/adversarial-reviewer-prompt.md`
+3. Fill the template: `{spec_contract}`, `{test_file_contents}`,
+   `{impl_file_contents}`, `{unit_name}`, `{min_assertions}`
+4. Dispatch a reviewer teammate with `team_name: "tdd-session"`. Read-only
+   tools: Read, Glob, Grep.
+5. Parse the response for `PASS` or `FAIL`
+6. If `FAIL`: send critical issues back for revision, then **re-run this review**
+
+### Step 4g: Code Quality Review
+
+**Why**: Spec compliance and adversarial review check correctness. Code quality
+checks structure, naming, discipline, and maintainability.
+
+1. Use the Read tool to read impl files and test files from disk
+2. Use the Read tool to load `reference/code-quality-reviewer-prompt.md`
+3. Fill the template with what was implemented and the file contents
+4. Dispatch a reviewer teammate with `team_name: "tdd-session"`. Read-only
+   tools: Read, Glob, Grep.
+5. Parse the response for `Approved` or `Needs Changes`
+6. If `Needs Changes`: send issues back for fixes, then **re-run this review**
+
+### Completing a Unit
+
+After all three reviews pass, mark the unit completed:
+```bash
+cd {plugin_root} && npx tsx skills/tdd/scripts/update-state.ts \
+  --working-dir {user_cwd} --unit-id "{id}" --status "COMPLETED"
+```
+
+Log the event:
+```bash
+cd {plugin_root} && npx tsx skills/tdd/scripts/log-event.ts \
+  --working-dir {user_cwd} --event "unit.completed" --unit-id "{id}"
+```
+
+### Handling Task Units (Non-Code)
+
+For units with `unitType: "task"`, use the implementer prompt instead of the
+Test Writer / Code Writer split. Read `reference/implementer-prompt.md`, fill
+the template, dispatch a teammate. After completion, run spec compliance review
+and code quality review (skip adversarial review since there is no test/impl
+pair to verify). Mark completed when reviews pass.
+
+### Failure Handling
+
+If a unit exhausts maxRetries at any step:
+- If `--skip-failed`: mark as FAILED, log the event, continue to next unit
+- Otherwise: stop and escalate to the user with the failure details
+
+## Phase 5: Final Review
+
+**Why**: Individual units may pass in isolation but conflict when integrated.
+The final review catches cross-unit issues.
+
+1. Run the full test suite (no specific files):
+```bash
+cd {user_cwd} && {testCommand}
+```
+2. Use the Read tool to read all implementation and test files
+3. Perform a holistic spec compliance check: compare the FULL original spec
+   against ALL code produced. Look for requirements that fell through the cracks
+   between unit boundaries.
+4. Spec gap retrospective: flag assumptions made, unused dependencies, and
+   ambiguous interpretations encountered during the session
+
+## Phase 6: Report Generation (Script)
+
+**Why**: The report is the deliverable. But it must not be generated from
+inconsistent state — that would produce a misleading report.
+
+First, verify state consistency:
+```bash
+cd {plugin_root} && npx tsx skills/tdd/scripts/check-state.ts \
+  --working-dir {user_cwd}
+```
+
+If exit 1: the output lists violations (missing files, checksum mismatches,
+units marked completed without verification). Go back and fix them before
+proceeding. Do not generate a report from inconsistent state.
+
+If exit 0: generate the report:
+```bash
+cd {plugin_root} && npx tsx skills/tdd/scripts/generate-report.ts \
+  --working-dir {user_cwd}
+```
+
+The report is written to `{user_cwd}/tdd-report.md`.
+
+## Phase 7: Cleanup
+
+1. Use `TeamDelete` to shut down the `"tdd-session"` team and all teammates
+2. Delete spec-contract files: `rm -f {user_cwd}/spec-contract-*.md`
+3. Present the report summary to the user
+4. Suggest next steps: commit the code, run the full test suite manually,
+   review the report, etc.
+
+## Red Flags — Never Do These
+
+- **Fabricate verification results.** Script output is in the conversation. The
+  user (and future auditors) can see exactly what the script returned.
+- **Skip the re-review after fixes.** If a reviewer said NON-COMPLIANT or FAIL,
+  the fix must be re-reviewed. No exceptions.
+- **Pass Test Writer output to Code Writer.** The information barrier exists so
+  the Code Writer is driven by tests, not by shared reasoning.
+- **Mark a unit completed without all reviews passing.** The state file records
+  what happened. check-state.ts will catch the inconsistency.
+- **Generate a report when check-state.ts reports violations.** Fix first.
+- **Proceed past exit code 1 without retrying or escalating.** A script failure
+  means a verification failed. The model must act on it.
 
 ## Artifacts
 
-| File | Purpose | Gitignored? |
-|------|---------|-------------|
+| File | Purpose | Gitignored |
+|------|---------|------------|
 | `.tdd-state.json` | Pipeline state for resume | Yes |
-| `tdd-session.jsonl` | Event log | Yes |
-| `spec-contract-*.md` | Per-unit spec (deleted in cleanup) | Yes |
-| `tdd-report.md` | Final report | **No** (deliverable) |
+| `tdd-session.jsonl` | Structured event log | Yes |
+| `spec-contract-*.md` | Per-unit spec contracts (deleted in cleanup) | Yes |
+| `tdd-report.md` | Final session report | No (deliverable) |

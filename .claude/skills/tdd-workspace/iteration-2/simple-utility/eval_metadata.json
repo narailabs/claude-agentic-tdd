@@ -1,0 +1,1 @@
+{"eval_id": 1, "eval_name": "simple-utility", "prompt": "/tdd implement a string utility module with functions: capitalize(str), truncate(str, maxLen), and slugify(str)"}

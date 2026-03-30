@@ -1,0 +1,55 @@
+{
+  "expectations": [
+    {
+      "text": "Detects that the user provided an existing test file (entry point mode 3)",
+      "passed": false,
+      "evidence": "Trace: 'Would Claude detect it's in \"existing test\" mode? NO. The TDD skill has explicit entry point detection (Mode 3: user-provided test) with specific behavioral adaptations. The baseline has no mode detection — it just interprets the request ad hoc.' Summary: 'Task classification: NO — No mode detection (not recognized as existing test mode).'"
+    },
+    {
+      "text": "Skips the Test Writer phase — does NOT rewrite or replace the user's test file",
+      "passed": true,
+      "evidence": "Trace Step 2: Baseline does read the existing test file and write implementation to match it. It does not rewrite the test file. Step 3: '1. Read src/__tests__/calculator.test.ts, 2. Write src/calculator.ts'. The test file is read, not rewritten. However, this is coincidental — not a deliberate Mode 3 skip."
+    },
+    {
+      "text": "Reads the existing test file from disk and passes contents to the Code Writer",
+      "passed": false,
+      "evidence": "While baseline does read the test file, there is no Code Writer agent. Trace: 'Would Claude use agent teams? NO. Single-session execution.' The same session reads tests and writes implementation — no information barrier, no Code Writer agent receiving disk-read contents."
+    },
+    {
+      "text": "Still performs GREEN verification (checksum check, all tests pass)",
+      "passed": false,
+      "evidence": "Trace: 'Would Claude verify GREEN? NO. This is the most critical gap for existing-test mode. Without GREEN verification: Claude could modify the test file to make tests pass (no checksum comparison), Claude could add .skip markers to failing tests.' Summary: 'GREEN verification: NO — No checksum/tamper detection.'"
+    },
+    {
+      "text": "Still performs adversarial review on the test+implementation pair",
+      "passed": false,
+      "evidence": "Trace: 'Would Claude do formal reviews? NO. No spec compliance review, No adversarial review, No code quality review. Claude writes code to pass tests and reports done.' Summary: 'Formal reviews: NO.'"
+    },
+    {
+      "text": "Does NOT ask the user to confirm a work decomposition plan for a single provided test",
+      "passed": true,
+      "evidence": "Baseline does not present a work plan at all. It goes directly from reading the test file to writing implementation. No decomposition plan is presented. This trivially satisfies the assertion (no plan means no unnecessary plan confirmation)."
+    }
+  ],
+  "summary": {
+    "passed": 2,
+    "failed": 4,
+    "total": 6,
+    "pass_rate": 0.333
+  },
+  "claims": [
+    "Baseline does read existing test files and write implementation to match — the closest it gets to TDD",
+    "No mode detection means no behavioral adaptation for user-provided tests",
+    "GREEN verification is the critical missing guardrail: test file tampering goes undetected",
+    "No formal reviews despite implementation being independently verifiable against user's tests",
+    "No skip-marker detection: .skip or xit could be added to difficult tests silently"
+  ],
+  "eval_feedback": {
+    "suggestions": [
+      "Assertion 2 passes on a technicality (baseline does not rewrite tests), but the lack of deliberate mode detection means this behavior is not guaranteed. Consider whether this should be graded as 'partial' rather than 'passed'.",
+      "Assertion 6 also passes trivially (no plan at all). The intent was to check that an unnecessary step is skipped, but baseline skips everything. Consider whether trivially-true assertions should count differently.",
+      "The existing-test eval has the smallest gap between with_skill and baseline (2 vs 5 passing) because the test-first constraint is already satisfied by the user. This is expected."
+    ],
+    "overall": "The baseline passes 2 of 6 assertions, both on technicalities: it does not rewrite the user's test file (assertion 2) and does not present an unnecessary plan (assertion 6). However, it lacks the critical guardrails: no mode detection, no GREEN verification with checksums, no formal reviews, and no skip-marker detection. The existing-test case is where baseline performs closest to the skill because the user already provides the test-first constraint."
+  }
+}

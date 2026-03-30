@@ -47,8 +47,8 @@ Agent teams must be enabled. Add to `.claude/settings.json`:
 ## Development
 
 This plugin is structured as:
-- `.claude/skills/tdd/SKILL.md` — main orchestration skill (Phases 0-7)
-- `.claude/skills/tdd/reference/` — supporting documentation
+- `skills/tdd/SKILL.md` — main orchestration skill (Phases 0-7)
+- `skills/tdd/reference/` — supporting documentation
   - `framework-detection.md` — auto-detect test frameworks (10+ languages)
   - `state-management.md` — state file schema and incremental resume
   - `anti-cheat.md` — RED/GREEN verification rules and anti-rationalization table
@@ -62,4 +62,4 @@ This plugin is structured as:
   - `report-format.md` — report and session log schema
 - `.claude-plugin/plugin.json` — marketplace manifest
 
-To test locally, copy `.claude/skills/tdd/` to your test project's `.claude/skills/tdd/`.
+To test locally, copy `skills/tdd/` to your test project's `.claude/skills/tdd/`.

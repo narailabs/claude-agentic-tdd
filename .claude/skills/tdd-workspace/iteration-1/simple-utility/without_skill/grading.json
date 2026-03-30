@@ -1,0 +1,74 @@
+{
+  "expectations": [
+    {
+      "text": "Detects or asks about the test framework before writing tests",
+      "passed": false,
+      "evidence": "Baseline trace shows no framework detection step. Claude proceeds directly to writing code without detecting or configuring a test runner. Summary confirms: no test conventions checked."
+    },
+    {
+      "text": "Presents a work decomposition plan and asks for user confirmation before proceeding",
+      "passed": false,
+      "evidence": "Summary table: 'User confirmation of plan: NO — Jumps straight to coding.' Trace Step 2: Claude goes directly to implementation without presenting a plan."
+    },
+    {
+      "text": "Test Writer creates test files BEFORE any implementation code exists",
+      "passed": false,
+      "evidence": "Trace Step 3 file creation sequence: '1. Write src/string-utils.ts (implementation FIRST), 2. Write tests SECOND (if at all).' Tests are written after implementation, not before."
+    },
+    {
+      "text": "Tests fail initially (RED phase verified) — the skill explicitly checks for non-zero exit code",
+      "passed": false,
+      "evidence": "Trace: 'No RED phase: tests are never observed to fail.' Summary: 'RED verification: NO — Tests never observed failing.' No non-zero exit code check at any point."
+    },
+    {
+      "text": "Code Writer receives test file contents read from disk, not from Test Writer output (information barrier)",
+      "passed": false,
+      "evidence": "Trace: 'NO. The same Claude session that writes the tests also writes the implementation. It has full knowledge of both.' No information barrier exists."
+    },
+    {
+      "text": "Code Writer does NOT modify test files (checksum verification mentioned or performed)",
+      "passed": false,
+      "evidence": "Trace: 'NO. There is no checksum mechanism. If Claude edits a test file to make it pass (instead of fixing the implementation), nothing catches this.' No checksum verification."
+    },
+    {
+      "text": "All tests pass after implementation (GREEN phase)",
+      "passed": false,
+      "evidence": "While tests likely pass at the end, there is no formal GREEN verification phase. Trace: 'No GREEN phase: no checksums, no tamper detection.' Tests may pass but the verification is informal — just running tests once at the end."
+    },
+    {
+      "text": "An adversarial review step is performed on the test+implementation pair",
+      "passed": false,
+      "evidence": "Trace: 'NO. No adversarial review, no spec compliance review, no code quality review. Claude self-assesses and moves on.' Summary: 'Formal reviews: NO.'"
+    },
+    {
+      "text": "A tdd-report.md or equivalent summary is generated at the end",
+      "passed": false,
+      "evidence": "Summary: 'Report generation: NO — No structured tdd-report.md output.' Trace confirms no report generation step."
+    },
+    {
+      "text": "The skill does NOT skip any verification steps even for simple specs",
+      "passed": false,
+      "evidence": "All verification steps are absent: no RED verification, no GREEN verification, no checksum, no adversarial review, no spec compliance review, no code quality review. Every verification step is skipped because the pipeline does not exist."
+    }
+  ],
+  "summary": {
+    "passed": 0,
+    "failed": 10,
+    "total": 10,
+    "pass_rate": 0.0
+  },
+  "claims": [
+    "Baseline Claude writes implementation first, tests second (if at all)",
+    "No agent teams, no information barriers, no independent verification",
+    "No RED or GREEN verification phases exist in baseline",
+    "No adversarial or formal review of any kind",
+    "No work decomposition plan presented to user for confirmation"
+  ],
+  "eval_feedback": {
+    "suggestions": [
+      "Assertion 7 (GREEN phase) could be considered partially passed since baseline does run tests at the end, but without formal verification (no checksums, no tamper detection), it fails the intent of the assertion",
+      "Future evals could track whether baseline at least produces correct functional code, even without the process guarantees"
+    ],
+    "overall": "The without_skill baseline fails all 10 assertions. This is expected and demonstrates the maximum contrast between skill-guided and baseline behavior. The baseline writes code first, tests second, with no verification pipeline, no information barriers, no formal reviews, and no structured output. The simple-utility spec is the easiest case for baseline to produce correct functional code, but the process guarantees (RED, GREEN, anti-cheat, review) are entirely absent."
+  }
+}

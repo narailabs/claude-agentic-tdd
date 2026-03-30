@@ -1,0 +1,55 @@
+{
+  "expectations": [
+    {
+      "text": "Detects that the user provided an existing test file (entry point mode 3)",
+      "passed": true,
+      "evidence": "Step 5: 'User says \"implement against ... test\" — this is Mode 3: User-Provided Test. The skill identifies the test file: src/__tests__/calculator.test.ts.' Mode 3 explicitly detected."
+    },
+    {
+      "text": "Skips the Test Writer phase — does NOT rewrite or replace the user's test file",
+      "passed": true,
+      "evidence": "Step 4a: 'Test Writer — SKIPPED. Mode 3 skips the Test Writer entirely. The user-provided test file is the test.' The user's test file is preserved; no Test Writer is spawned."
+    },
+    {
+      "text": "Reads the existing test file from disk and passes contents to the Code Writer",
+      "passed": true,
+      "evidence": "Step 4c: 'Read test file from disk: src/__tests__/calculator.test.ts.' Code Writer receives 'Full test file contents (verbatim from disk)' plus spec-contract and framework info."
+    },
+    {
+      "text": "Still performs GREEN verification (checksum check, all tests pass)",
+      "passed": true,
+      "evidence": "Step 4b records checksums: 'shasum -a 256 src/__tests__/calculator.test.ts — Store checksum in state.' Step 4d GREEN Verification: Check 1 confirms checksum match, Check 3 confirms all tests pass with exit code == 0."
+    },
+    {
+      "text": "Still performs adversarial review on the test+implementation pair",
+      "passed": true,
+      "evidence": "Step 4f: Adversarial Review spawned with spec-contract, test + impl files. 'Checks: edge case coverage, hardcoded returns, test-implementation coupling, cheating detection. Cross-reference anti-patterns doc. Verdict: PASS.'"
+    },
+    {
+      "text": "Does NOT ask the user to confirm a work decomposition plan for a single provided test",
+      "passed": false,
+      "evidence": "Step 8 actually does present a User Confirmation dialog: 'Proceed? [confirm/modify/cancel]' with a work plan showing 1 unit. The trace shows the skill asks for confirmation even for a single user-provided test. This contradicts the assertion that it should NOT ask for a plan for a single provided test."
+    }
+  ],
+  "summary": {
+    "passed": 5,
+    "failed": 1,
+    "total": 6,
+    "pass_rate": 0.833
+  },
+  "claims": [
+    "Mode 3 (user-provided test) correctly detected from 'implement against' phrasing",
+    "Test Writer and RED verification skipped as expected for user-owned tests",
+    "GREEN verification with checksum comparison still enforced to prevent Code Writer tampering",
+    "Three-stage review pipeline runs in full despite skipped Test Writer phase",
+    "Spec-contract derived from test file contents by the lead (not by a Test Writer agent)"
+  ],
+  "eval_feedback": {
+    "suggestions": [
+      "Assertion 6 reveals a potential skill design question: should Mode 3 with a single test file skip user confirmation? The skill currently asks anyway. Consider whether this is correct behavior (safety) or unnecessary friction (single obvious unit).",
+      "The trace does not show what happens if the user's test file has quality issues (low assertion density, anti-patterns). Consider adding a negative variant.",
+      "RED verification is skipped by design in Mode 3, but the summary notes checksums are still recorded. This is the correct behavior but could be made more explicit in the assertion set."
+    ],
+    "overall": "The with_skill run correctly handles Mode 3 (user-provided test). 5 of 6 assertions pass. The one failure is assertion 6: the skill does present a work plan and asks for confirmation even for a single user-provided test, contradicting the expectation that this step would be skipped. This is a judgment call in skill design — asking for confirmation is arguably safer but adds friction for the simplest case."
+  }
+}

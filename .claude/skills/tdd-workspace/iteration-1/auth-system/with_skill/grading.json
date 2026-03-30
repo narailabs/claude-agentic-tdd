@@ -1,0 +1,70 @@
+{
+  "expectations": [
+    {
+      "text": "Triggers the design gate (Phase 0) — asks clarifying questions about the auth system before decomposing",
+      "passed": true,
+      "evidence": "Step 6 Phase 0: Design gate triggered. Trigger evaluation identifies '3+ distinct features: registration, login, password reset (YES)', 'external integrations: JWT tokens, email notification, password hashing (YES)', and 'Ambiguities present (YES)'. Three clarifying questions asked before decomposition in Step 8."
+    },
+    {
+      "text": "Produces a design summary with components, data flow, and key decisions before proceeding",
+      "passed": true,
+      "evidence": "Step 0c produces a formal design summary with sections: Components (UserRegistration, UserLogin, PasswordReset), Data Flow (Registration, Login, Password Reset flows), Key Decisions (JWT with refresh tokens, bcrypt, lockout rules, etc.), Out of Scope. Summary stored in state under designSummary."
+    },
+    {
+      "text": "Decomposes into at least 3 work units (registration, login, password-reset or similar)",
+      "passed": true,
+      "evidence": "Step 8 Phase 2 produces exactly 3 work units: Unit 1 (user-registration), Unit 2 (user-login), Unit 3 (password-reset). Each has its own spec-contract, test files, impl files, and dependency declarations."
+    },
+    {
+      "text": "Identifies dependencies between units (login depends on registration, password-reset depends on registration)",
+      "passed": true,
+      "evidence": "Unit 2 (user-login): dependsOn=[user-registration]. Unit 3 (password-reset): dependsOn=[user-registration]. Unit 1 (user-registration): dependsOn=[]. Dependencies explicitly declared and reflected in DAG."
+    },
+    {
+      "text": "Respects dependency order — implements registration before login and password-reset",
+      "passed": true,
+      "evidence": "Step 10: Ready Queue starts with [user-registration] only. Registration runs first (Slot 1). After registration COMPLETES, both user-login and password-reset are added to ready queue and dispatched. Execution plan shows: 'Ready immediately: user-registration. After user-registration: user-login, password-reset (parallel).'"
+    },
+    {
+      "text": "Each work unit goes through the full RED->GREEN->review cycle independently",
+      "passed": true,
+      "evidence": "All three units independently execute: Test Writer (4a) -> RED Verification (4b) -> Code Writer (4c) -> GREEN Verification (4d) -> Spec Compliance (4e) -> Adversarial (4f) -> Code Quality (4g). Each unit has its own checksums, test files, and review verdicts."
+    },
+    {
+      "text": "Runs a final integration test across all units after individual completion",
+      "passed": true,
+      "evidence": "Step 11 Phase 5: 'Run FULL test suite: npx vitest run. All tests across 3 test files pass.' Plus: 'Holistic review: check that user-login and password-reset correctly interface with user-registration's user store/types.' And: 'Cross-unit integration: verify login works with registered users, password-reset works with registered users.'"
+    },
+    {
+      "text": "The report shows all work units with their individual phase statuses",
+      "passed": true,
+      "evidence": "Step 12 Phase 6: 'Generate tdd-report.md: 3/3 units completed, ~25-30 total tests, ~30-40 total assertions, 0 anti-cheat violations, All reviews passed, Model assignments recorded per unit.' Report structure includes per-unit tracking."
+    },
+    {
+      "text": "Assigns model and effort per agent based on complexity — opus for architecture-sensitive Test Writers and reviewers, sonnet for Code Writers",
+      "passed": true,
+      "evidence": "Step 8 Model Assignment table shows: user-registration (Integration) gets sonnet/high for all roles. user-login and password-reset (Architecture) get opus/high for Test Writer, Spec Compliance, and Adversarial reviewers, while Code Writer and Code Quality get sonnet/high. This matches the expected pattern."
+    }
+  ],
+  "summary": {
+    "passed": 9,
+    "failed": 0,
+    "total": 9,
+    "pass_rate": 1.0
+  },
+  "claims": [
+    "Design gate triggers correctly for multi-component auth system with security concerns",
+    "Clarifying questions asked one at a time (Q1, Q2, Q3 sequentially) with trade-off proposals",
+    "Dependency DAG correctly computed: registration is root, login and password-reset depend on it",
+    "Eager dispatch demonstrated: login and password-reset dispatched in parallel after registration completes",
+    "Mixed model assignment: opus/high for architecture-sensitive agents, sonnet/high for mechanical agents",
+    "Full three-stage review (spec compliance, adversarial, code quality) runs independently per unit"
+  ],
+  "eval_feedback": {
+    "suggestions": [
+      "The trace assumes the auth system integration tests pass, but does not show what happens if cross-unit integration fails (e.g., type mismatch between registration output and login input). A failure path variant would be valuable.",
+      "Consider adding an assertion about the design summary being passed downstream to Test Writers and reviewers, which is a key skill feature mentioned in the summary but not explicitly asserted."
+    ],
+    "overall": "The with_skill run demonstrates the full complexity of the TDD skill pipeline for a multi-component system. All 9 assertions pass. The design gate, dependency analysis, eager dispatch, mixed model assignment, and per-unit TDD pipeline are all correctly exercised. The auth system eval is the most thorough test of the skill's orchestration capabilities."
+  }
+}

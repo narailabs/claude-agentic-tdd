@@ -1,0 +1,61 @@
+{
+  "expectations": [
+    {
+      "text": "Decomposes into 4 work units with no dependencies between them",
+      "passed": false,
+      "evidence": "Trace: 'Would Claude decompose into work units with user confirmation? NO. No work plan presentation.' Summary: 'Work decomposition: NO — All endpoints handled as monolithic feature.' Step 3 shows all 4 endpoints written sequentially in a single pass, not decomposed into independent units."
+    },
+    {
+      "text": "Computes a single parallel batch containing all 4 units",
+      "passed": false,
+      "evidence": "Trace: 'Would Claude detect that endpoints are independent? NO. The TDD skill's Phase 2 performs dependency analysis and explicitly identifies independent work units.' No batch computation occurs. Summary: 'Dependency analysis: NO — Independence not formally identified.'"
+    },
+    {
+      "text": "Presents the execution plan showing all units run concurrently in Batch 1",
+      "passed": false,
+      "evidence": "No execution plan is presented. Trace: 'No work plan presentation. No user confirmation of decomposition. Claude decides the structure and proceeds.' Summary: 'User confirmation of plan: NO — Structure decided unilaterally.'"
+    },
+    {
+      "text": "Dispatches multiple Test Writers simultaneously (up to maxParallelPairs config, default 4)",
+      "passed": false,
+      "evidence": "Trace: 'Would Claude use agent teams? NO. Single-session execution. This is the eval where the performance difference is most dramatic.' No Test Writers exist, let alone multiple simultaneous ones. Summary: 'Agent teams: NO.'"
+    },
+    {
+      "text": "Each unit independently goes through the full RED->GREEN->review cycle",
+      "passed": false,
+      "evidence": "Trace: 'No RED/GREEN verification: For any endpoint.' Summary: 'RED verification: NO. GREEN verification: NO. Formal reviews: NO.' No unit-level TDD cycles exist. All endpoints implemented first, then tests written to match."
+    },
+    {
+      "text": "Applies the three-stage review pipeline: spec compliance -> adversarial -> code quality",
+      "passed": false,
+      "evidence": "Trace: 'Would Claude do formal reviews? NO. No adversarial review, no spec compliance review, no code quality review. Each endpoint gets zero independent validation.' Summary: 'Formal reviews: NO — No per-endpoint adversarial/spec/quality review.'"
+    },
+    {
+      "text": "Runs a final integration test after all units complete",
+      "passed": false,
+      "evidence": "Trace: 'Would Claude run a final integration review? WEAKLY. Claude might run all tests together at the end, but there's no formal Phase 5 with: Full test suite execution with actual output reading, Cross-unit integration check.' Summary: 'Integration review: WEAK.' While tests may be run, there is no formal integration review step."
+    }
+  ],
+  "summary": {
+    "passed": 0,
+    "failed": 7,
+    "total": 7,
+    "pass_rate": 0.0
+  },
+  "claims": [
+    "Baseline serializes 4 independent endpoints through a single session — no parallel execution",
+    "No work unit decomposition despite user explicitly saying 'independent endpoints'",
+    "No agent teams: all code and tests written by the same session in sequence",
+    "No per-endpoint TDD cycle (RED, GREEN, reviews) — all endpoints handled monolithically",
+    "Performance ceiling: potentially 4x slower than parallel TDD approach for fully independent work",
+    "No execution plan presentation or user confirmation of decomposition strategy"
+  ],
+  "eval_feedback": {
+    "suggestions": [
+      "Assertion 7 (integration test) is borderline: baseline does run tests at the end, but without formal Phase 5 verification. The grading correctly requires formal integration review, not just running tests.",
+      "This eval most clearly demonstrates the throughput advantage of agent teams. Consider measuring actual wall-clock time in live runs to quantify the 4x speedup claim.",
+      "Future evals could test with 8 independent units against maxParallelPairs=4 to see if baseline's sequential approach becomes even more disadvantaged."
+    ],
+    "overall": "The baseline fails all 7 assertions for the parallel batch eval. This is the eval where the throughput gap is largest: 4 fully independent endpoints that could run in parallel are serialized through a single session. No decomposition, no agent teams, no per-endpoint verification, and no formal integration review. The baseline's single-session architecture fundamentally cannot exploit the parallelism that the skill's agent teams enable."
+  }
+}

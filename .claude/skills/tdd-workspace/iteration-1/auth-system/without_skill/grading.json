@@ -1,0 +1,69 @@
+{
+  "expectations": [
+    {
+      "text": "Triggers the design gate (Phase 0) — asks clarifying questions about the auth system before decomposing",
+      "passed": false,
+      "evidence": "Trace: 'Would Claude run a design gate? NO.' The spec 'clearly triggers the design gate conditions (3+ features, security concerns, ambiguous error handling policies), but without the skill, no design refinement happens.' Summary: 'Design gate: NO — No explicit design decisions presented.'"
+    },
+    {
+      "text": "Produces a design summary with components, data flow, and key decisions before proceeding",
+      "passed": false,
+      "evidence": "Trace: 'No design gate' section confirms no formal design summary. 'Claude makes implicit decisions about: Token type (JWT vs session), Password hashing algorithm, Token expiry policies, Error response formats, Email verification requirements. None of these decisions are presented to the user for review.'"
+    },
+    {
+      "text": "Decomposes into at least 3 work units (registration, login, password-reset or similar)",
+      "passed": false,
+      "evidence": "Trace: 'Would Claude decompose into work units? NO.' Summary: 'Work decomposition: NO — Likely all written as monolithic auth module.' Step 3 shows all 3 features written as implementation files in a single pass."
+    },
+    {
+      "text": "Identifies dependencies between units (login depends on registration, password-reset depends on registration)",
+      "passed": false,
+      "evidence": "Trace: 'No dependency analysis: Cross-component integration untested.' No DAG construction, no dependsOn declarations. The relationship between registration creating users and login/reset referencing them is not formally tracked."
+    },
+    {
+      "text": "Respects dependency order — implements registration before login and password-reset",
+      "passed": false,
+      "evidence": "While baseline might coincidentally write registration first (it appears first in the spec), this is not due to dependency analysis. Trace: 'No formal DAG construction, No dependency violation detection.' Summary: 'Eager dispatch: NO — Sequential; no parallel execution of independent units.'"
+    },
+    {
+      "text": "Each work unit goes through the full RED->GREEN->review cycle independently",
+      "passed": false,
+      "evidence": "Trace confirms no RED verification, no GREEN verification, no formal reviews for any component. 'Would Claude verify RED? NO.' 'Would Claude verify GREEN? NO.' 'Would Claude do formal reviews? NO.' All components handled in a single monolithic pass."
+    },
+    {
+      "text": "Runs a final integration test across all units after individual completion",
+      "passed": false,
+      "evidence": "No individual unit completion to integrate. Trace: 'No dependency analysis: Cross-component integration untested.' Claude may run tests at the end but without per-unit verification or formal integration checking. Summary: 'Cross-component integration untested.'"
+    },
+    {
+      "text": "The report shows all work units with their individual phase statuses",
+      "passed": false,
+      "evidence": "Summary: 'Report generation: NO — No structured output.' No tdd-report.md, no per-unit status tracking, no phase status records."
+    },
+    {
+      "text": "Assigns model and effort per agent based on complexity — opus for architecture-sensitive Test Writers and reviewers, sonnet for Code Writers",
+      "passed": false,
+      "evidence": "Trace: 'Would Claude assign model/effort by complexity? NO. No per-component model selection. The security-sensitive password reset flow gets the same treatment as a simple getter.' Summary: 'Model/effort by complexity: NO — Uniform handling; password-reset flow same as simple validators.'"
+    }
+  ],
+  "summary": {
+    "passed": 0,
+    "failed": 9,
+    "total": 9,
+    "pass_rate": 0.0
+  },
+  "claims": [
+    "Baseline produces a monolithic auth implementation without design review or user input on architectural decisions",
+    "Security-critical decisions (token type, hashing algorithm, lockout policy) made implicitly without user approval",
+    "No decomposition into independent work units despite clear registration/login/reset boundaries",
+    "No per-component verification: RED, GREEN, reviews all absent",
+    "Cross-component integration between registration, login, and password-reset is untested"
+  ],
+  "eval_feedback": {
+    "suggestions": [
+      "This eval has the widest quality gap between with_skill and baseline. Future iterations could add an assertion about whether baseline at least asks some clarifying questions (even informally) before starting implementation.",
+      "Consider testing what happens when baseline makes wrong implicit decisions (e.g., choosing session tokens when user wanted JWT) — this is the design gate failure mode."
+    ],
+    "overall": "The baseline fails all 9 assertions for the auth system. This is the eval where the design gate absence is most consequential: security-critical architectural decisions are made implicitly. The baseline produces functional code but with no design review, no decomposition, no dependency tracking, no per-unit verification, and no formal security review. The contrast with the with_skill run is stark."
+  }
+}

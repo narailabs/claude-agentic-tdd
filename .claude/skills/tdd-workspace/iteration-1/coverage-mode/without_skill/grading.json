@@ -1,0 +1,60 @@
+{
+  "expectations": [
+    {
+      "text": "Detects entry point mode 2 — existing codebase coverage mode",
+      "passed": false,
+      "evidence": "Trace: 'Would Claude detect it's in \"coverage mode\"? NO. The TDD skill has explicit Mode 2 (existing codebase) detection with specific behavioral adaptations. Baseline Claude just reads and writes without mode awareness.' Summary: 'Task classification: NO — No mode detection.'"
+    },
+    {
+      "text": "Reads and analyzes the existing source files in src/utils/ before writing tests",
+      "passed": true,
+      "evidence": "Trace Step 2: 'Claude would read the existing source files in src/utils/, understand what they do, then write tests for them.' Step 3: '1. Read src/utils/*.ts — understand existing code.' Baseline does read source files before writing tests."
+    },
+    {
+      "text": "Skips the design gate because --skip-design flag was passed",
+      "passed": false,
+      "evidence": "Trace: 'Would Claude detect the --skip-design flag? NO. The flag is meaningless without the skill. There is no design gate to skip.' Summary: '--skip-design flag: IGNORED — No design gate concept exists.'"
+    },
+    {
+      "text": "Generates tests derived from reading specific source file contents (function signatures, return types, edge cases) — not just generic tests",
+      "passed": true,
+      "evidence": "Baseline does read source files and writes tests based on what it reads. However, the trace notes this creates implementation-mirroring tests: 'Tests shaped by reading source code, not by behavioral specification.' While tests are source-derived (not generic), they mirror implementation rather than testing behavioral contracts. Grading as passed because the assertion asks about source-derived tests, which baseline does produce."
+    },
+    {
+      "text": "Describes or resolves the tension between RED verification and existing implementations",
+      "passed": false,
+      "evidence": "Trace: 'No Coverage Mode RED verification: No rename-test-restore cycle to prove tests depend on real code.' The tension is not acknowledged or resolved. Baseline has no RED verification concept at all, let alone an adapted one for coverage mode."
+    },
+    {
+      "text": "Demonstrates the adapted hide-and-restore RED verification procedure for coverage mode",
+      "passed": false,
+      "evidence": "Trace: 'Would Claude verify RED (Coverage Mode)? NO. This is the most critical gap for coverage mode. Without the rename-test-restore cycle: Tests might import the module but not actually exercise its real code paths.' No hide-and-restore procedure exists in baseline."
+    },
+    {
+      "text": "Produces a report showing coverage additions",
+      "passed": false,
+      "evidence": "Summary: 'Report generation: NO.' No tdd-report.md, no coverage summary, no structured output documenting what tests were added."
+    }
+  ],
+  "summary": {
+    "passed": 2,
+    "failed": 5,
+    "total": 7,
+    "pass_rate": 0.286
+  },
+  "claims": [
+    "Baseline does read existing source files before writing tests — the one behavior that partially aligns with coverage mode",
+    "No mode detection means no pipeline adaptations for existing codebase",
+    "Hide-and-restore RED verification is completely absent — tests may vacuously pass",
+    "Implementation-mirroring tests: baseline reads code first, so tests document what code does (including bugs) rather than what it should do",
+    "--skip-design flag meaningless without the skill framework"
+  ],
+  "eval_feedback": {
+    "suggestions": [
+      "Assertion 4 is borderline: baseline does derive tests from source contents, but the quality concern (implementation-mirroring) is significant. Consider splitting into two assertions: one for source-derived tests (passes) and one for behavioral (not implementation-mirroring) tests (fails).",
+      "The coverage mode eval has the most distinctive skill feature (hide-and-restore). Future evals could test a scenario where tests pass without the implementation (tautological) to see if baseline catches it (it would not).",
+      "Consider adding an assertion about per-file decomposition. Baseline likely writes one test file for all utils; skill decomposes into per-module units."
+    ],
+    "overall": "The baseline passes 2 of 7 assertions: it does read source files and does derive tests from them. However, it lacks mode detection, the hide-and-restore RED verification (the most critical coverage-mode feature), design gate awareness, and report generation. The coverage mode eval highlights the unique value of the skill's adapted verification procedure for existing codebases."
+  }
+}

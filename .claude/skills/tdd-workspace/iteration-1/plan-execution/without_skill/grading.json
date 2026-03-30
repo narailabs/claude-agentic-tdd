@@ -1,0 +1,71 @@
+{
+  "expectations": [
+    {
+      "text": "Detects entry point mode 4 (plan execution)",
+      "passed": false,
+      "evidence": "Trace: 'Without the TDD skill, Claude interprets this as: \"read docs/plan.md and execute the tasks described in it.\" There is no Mode 4 (Plan Execution) detection. Claude treats the plan as a natural language document to follow.' No mode detection."
+    },
+    {
+      "text": "Classifies tasks into code (registration, login) and non-code (migration, config, docs) types",
+      "passed": false,
+      "evidence": "Trace: 'Would Claude classify tasks as code vs. non-code? NO. This is a critical gap for plan execution mode.' Summary: 'Task classification (code vs. non-code): NO — All tasks handled identically.' Without classification, code tasks miss TDD and non-code tasks lack focused handling."
+    },
+    {
+      "text": "Routes code tasks through the full TDD pipeline (Test Writer -> RED -> Code Writer -> GREEN -> Review)",
+      "passed": false,
+      "evidence": "Trace: 'No TDD pipeline for code tasks: Tests not written first, no RED/GREEN, no anti-cheat.' Step 4 shows all tasks executed as sequential implementation without Test Writer, RED, or GREEN phases."
+    },
+    {
+      "text": "Routes non-code tasks through implementer dispatch (Implementer -> Spec Compliance -> Code Quality)",
+      "passed": false,
+      "evidence": "Trace: 'No Implementer dispatch for non-code tasks: Non-code tasks lack focused template.' Summary: 'Implementer dispatch for non-code: NO — Non-code tasks not given focused handling.' No implementer agents exist in baseline."
+    },
+    {
+      "text": "Respects dependency ordering — migration before registration, registration before login, config before login, both before docs",
+      "passed": false,
+      "evidence": "Trace: 'Would Claude respect dependency ordering? WEAKLY. Claude would likely execute tasks in the order listed in the plan document.' Summary: 'Dependency DAG construction: NO — Sequential execution in document order.' While document order may coincidentally match, there is no formal dependency tracking. If the plan were reordered, dependencies could be violated."
+    },
+    {
+      "text": "Presents a work plan with eager dispatch format showing dependency chains, not rigid batches",
+      "passed": false,
+      "evidence": "Trace: 'No formal DAG construction.' Summary: 'Eager dispatch: NO — No parallel execution of independent tasks.' No work plan presented showing dependency chains or execution strategy."
+    },
+    {
+      "text": "Uses eager dispatch — units start as soon as their specific dependencies complete, not when an entire level finishes",
+      "passed": false,
+      "evidence": "Trace: 'Would Claude use eager dispatch for parallel tasks? NO. This is a significant efficiency gap. If tasks 1, 2, and 3 are independent, the TDD skill would run them concurrently. Baseline Claude runs them one after another.' Summary: 'Eager dispatch: NO.'"
+    },
+    {
+      "text": "Applies the subagent status protocol (DONE/DONE_WITH_CONCERNS/NEEDS_CONTEXT/BLOCKED) to all agents",
+      "passed": false,
+      "evidence": "Trace: 'Would Claude use the Subagent Status Protocol? NO. No DONE / DONE_WITH_CONCERNS / NEEDS_CONTEXT / BLOCKED status reporting. If a task fails or has concerns, there's no structured escalation path.' Summary: 'Subagent Status Protocol: NO.'"
+    },
+    {
+      "text": "Runs a final holistic review across all tasks after individual completion",
+      "passed": false,
+      "evidence": "Trace: 'No spec compliance review: Plan requirements not verified against outputs.' Summary: 'Formal reviews: NO — No spec compliance, adversarial, or code quality review.' No holistic review phase exists in baseline. Claude may report 'done' after executing tasks but does not formally verify plan requirements are met."
+    }
+  ],
+  "summary": {
+    "passed": 0,
+    "failed": 9,
+    "total": 9,
+    "pass_rate": 0.0
+  },
+  "claims": [
+    "Baseline treats plan as a natural language document, not a structured execution artifact",
+    "No task classification: code and non-code tasks handled identically without appropriate pipelines",
+    "No dependency DAG: tasks executed in document order, which may or may not match dependencies",
+    "No parallel execution: independent tasks serialized, potentially 5x slower",
+    "No subagent status protocol: task failures have no structured escalation path",
+    "No holistic review: plan requirements not verified against final outputs"
+  ],
+  "eval_feedback": {
+    "suggestions": [
+      "Assertion 5 (dependency ordering) could be debated: if the plan document happens to be in correct order, baseline coincidentally respects dependencies. The assertion correctly requires formal tracking, not coincidental ordering.",
+      "Consider a variant where the plan document lists tasks out of dependency order to demonstrate that baseline would execute them incorrectly.",
+      "Plan execution is the longest-running mode and most vulnerable to session interruption. Testing the no-resume baseline behavior (state lost on interrupt) would be a valuable negative test."
+    ],
+    "overall": "The baseline fails all 9 assertions for plan execution. This is the eval with the most complex orchestration requirements, and the gap is total: no mode detection, no task classification, no dependency DAG, no dual pipeline routing, no eager dispatch, no subagent protocol, and no holistic review. The baseline reads the plan and executes tasks sequentially in document order with no TDD guarantees for code tasks and no focused handling for non-code tasks."
+  }
+}

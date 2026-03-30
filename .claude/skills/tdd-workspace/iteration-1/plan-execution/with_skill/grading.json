@@ -1,0 +1,71 @@
+{
+  "expectations": [
+    {
+      "text": "Detects entry point mode 4 (plan execution)",
+      "passed": true,
+      "evidence": "Step 5: 'User says \"execute ... plan\" and provides a plan file — this is Mode 4: Plan Execution. The skill reads docs/plan.md to extract tasks.' Mode 4 explicitly detected."
+    },
+    {
+      "text": "Classifies tasks into code (registration, login) and non-code (migration, config, docs) types",
+      "passed": true,
+      "evidence": "Step 8 Task Classification table: Task 1 (DB migration) = non-code (task), Task 2 (User CRUD) = code, Task 3 (Env config) = non-code (task), Task 4 (API endpoints) = code, Task 5 (API docs) = non-code (task). Classification with reasoning provided for each."
+    },
+    {
+      "text": "Routes code tasks through the full TDD pipeline (Test Writer -> RED -> Code Writer -> GREEN -> Review)",
+      "passed": true,
+      "evidence": "Unit user-crud: Steps 4a (Test Writer) -> 4b (RED) -> 4c (Code Writer) -> 4d (GREEN) -> 4e/4f/4g (reviews). Unit user-api: same full pipeline. Both code tasks go through the complete TDD cycle."
+    },
+    {
+      "text": "Routes non-code tasks through implementer dispatch (Implementer -> Spec Compliance -> Code Quality)",
+      "passed": true,
+      "evidence": "Unit database-schema: Step 4h (Implementer Dispatch) -> 4e (Spec Compliance) -> 4g (Code Quality). Unit env-config: same pattern. Unit api-docs: same pattern. All three non-code tasks use implementer dispatch with spec compliance and code quality reviews. Adversarial review skipped for non-code tasks."
+    },
+    {
+      "text": "Respects dependency ordering — migration before registration, registration before login, config before login, both before docs",
+      "passed": true,
+      "evidence": "Execution timeline: t0 dispatches database-schema and env-config (no deps). t1: database-schema completes, user-crud starts. t3: user-crud completes + env-config already done, user-api starts. t4: user-api completes, api-docs starts. DAG shown: 'database-schema -> user-crud -> user-api -> api-docs' and 'env-config -> user-api'. All dependencies respected."
+    },
+    {
+      "text": "Presents a work plan with eager dispatch format showing dependency chains, not rigid batches",
+      "passed": true,
+      "evidence": "User Confirmation shows: 'Execution plan (eager dispatch, max 4 concurrent): Ready immediately: database-schema, env-config (parallel). After database-schema: user-crud. After user-crud + env-config: user-api. After user-api: api-docs.' This shows dependency chains, not batch levels."
+    },
+    {
+      "text": "Uses eager dispatch — units start as soon as their specific dependencies complete, not when an entire level finishes",
+      "passed": true,
+      "evidence": "Step 10 KEY EAGER DISPATCH BEHAVIOR: 'user-crud starts as soon as database-schema completes. It does NOT wait for env-config to finish, even though they were dispatched in the same initial wave. This is the core advantage of eager over batch dispatch.' Timeline confirms user-crud starts at t1 (database-schema done), not t2 (env-config done)."
+    },
+    {
+      "text": "Applies the subagent status protocol (DONE/DONE_WITH_CONCERNS/NEEDS_CONTEXT/BLOCKED) to all agents",
+      "passed": true,
+      "evidence": "All agents report status: Test Writers report 'DONE', Code Writers report 'DONE', Implementers report 'DONE'. Summary mentions: 'The subagent status protocol is used for all agents' and 'the implementer prompt explicitly encourages subagents to report NEEDS_CONTEXT or BLOCKED rather than guessing.' The protocol is applied across both code and non-code agent types."
+    },
+    {
+      "text": "Runs a final holistic review across all tasks after individual completion",
+      "passed": true,
+      "evidence": "Step 11 Phase 5: 'Run full test suite: npx vitest run. All code tests pass. Verify non-code artifacts: migration file exists, config file exists, OpenAPI spec exists. Cross-unit integration: user-api correctly calls user-crud, uses env-config values. End-to-end: start server, hit endpoints (if possible).'"
+    }
+  ],
+  "summary": {
+    "passed": 9,
+    "failed": 0,
+    "total": 9,
+    "pass_rate": 1.0
+  },
+  "claims": [
+    "Mode 4 (plan execution) correctly detected and handles mixed code/non-code task plans",
+    "Task classification separates code tasks (TDD pipeline) from non-code tasks (implementer dispatch)",
+    "Dependency DAG correctly built from 5-task plan with diamond-shaped dependencies",
+    "Eager dispatch demonstrated: user-crud starts when database-schema finishes, not when env-config finishes",
+    "Subagent status protocol applied uniformly across Test Writers, Code Writers, and Implementers",
+    "Final holistic review covers both code artifacts (test suite) and non-code artifacts (migration, config, docs)"
+  ],
+  "eval_feedback": {
+    "suggestions": [
+      "Consider adding an assertion about inline task provision: the trace mentions subagents receive task text inline (not file references), which is a key skill feature for plan execution.",
+      "The trace does not exercise the NEEDS_CONTEXT or BLOCKED status paths. A variant where a task fails or has unresolvable dependencies would test the escalation protocol.",
+      "The execution timeline visualization is excellent for understanding eager dispatch. Consider whether the eval should explicitly verify the timeline matches expectations."
+    ],
+    "overall": "The with_skill run demonstrates the most complex orchestration scenario in the eval suite. All 9 assertions pass. Plan execution with mixed code/non-code tasks, complex dependency chains, eager dispatch, and the subagent status protocol are all correctly exercised. The eager dispatch advantage is clearly demonstrated: user-crud starts immediately when its dependency completes, without waiting for unrelated tasks."
+  }
+}

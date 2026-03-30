@@ -1,0 +1,56 @@
+{
+  "expectations": [
+    {
+      "text": "Triggers the design gate (Phase 0) due to ambiguity",
+      "passed": true,
+      "evidence": "Step 6 Trigger Evaluation: 'Spec mentions 2+ distinct features: payments, refunds (YES).' 'Spec involves external integrations: payment processors, credit card APIs (YES).' 'Spec is highly ambiguous: like credit cards and stuff, refunds maybe?, idk the details yet (YES — multiple ambiguities).' Decision: 'RUN the design gate. Multiple trigger conditions met.'"
+    },
+    {
+      "text": "Asks clarifying questions about the payment system — does NOT assume specific technologies or providers",
+      "passed": true,
+      "evidence": "Step 0a Q1 asks about payment methods ('just credit cards, or also debit cards, bank transfers, or digital wallets?'). Q2 asks about integration ('Should this integrate with a real payment gateway (Stripe, Square, etc.) or be a self-contained module?'). Q3 asks about refund scope ('full refunds only, or also partial refunds?'). Questions do not assume Stripe or any specific technology — they present options."
+    },
+    {
+      "text": "Asks questions one at a time, not as a dump of 10 questions at once",
+      "passed": true,
+      "evidence": "Step 0a shows Q1, then user answers. Q2, then user answers. Q3, then user answers. Three questions asked sequentially, each with a user response before the next. Not a batch dump."
+    },
+    {
+      "text": "Does NOT start writing code or tests before clarifying the spec",
+      "passed": true,
+      "evidence": "The design gate (Step 6) runs before Phase 1 (framework detection), Phase 2 (decomposition), and Phase 4 (agent orchestration). No test files or implementation files are created until after the design summary is approved. Step 0d: 'HARD GATE passed' is the checkpoint before any code."
+    },
+    {
+      "text": "Proposes design approaches with trade-offs (e.g., Stripe vs custom, sync vs async processing)",
+      "passed": true,
+      "evidence": "Step 0b presents two trade-offs: Trade-off 1 has 3 options (direct Stripe, gateway abstraction, queue-based) with pros/cons for each. Trade-off 2 has 2 options (synchronous refunds vs. refund request queue) with pros/cons. User selects from each."
+    },
+    {
+      "text": "Waits for user approval of the design before decomposing into work units",
+      "passed": true,
+      "evidence": "Step 0c produces the design summary. Step 0d: 'Proceed with this design? [confirm/modify/cancel]. User confirms. Design summary stored in state under designSummary. HARD GATE passed.' Only after this does Step 8 (Phase 2 — Work Decomposition) begin."
+    }
+  ],
+  "summary": {
+    "passed": 6,
+    "failed": 0,
+    "total": 6,
+    "pass_rate": 1.0
+  },
+  "claims": [
+    "Design gate correctly triggers on maximally ambiguous spec with 'idk the details yet'",
+    "Three clarifying questions asked one-at-a-time with user response between each",
+    "Two architectural trade-offs presented with 2-3 options each and pros/cons",
+    "HARD GATE enforced: no code written until design approved by user",
+    "Design summary includes Components, Data Flow, Key Decisions, and Out of Scope sections",
+    "Vague informal language ('like credit cards and stuff') transformed into concrete requirements"
+  ],
+  "eval_feedback": {
+    "suggestions": [
+      "Consider testing what happens if the user says 'cancel' at the design gate — does the skill abort cleanly?",
+      "The trace shows 3 clarifying questions. The skill instruction says 'Limit: 5 questions max, asked 1 at a time.' Testing with a spec that needs more than 3 but fewer than 5 questions would exercise this limit.",
+      "Consider adding an assertion that the design summary explicitly lists Out of Scope items, which is valuable for ambiguous specs to prevent scope creep."
+    ],
+    "overall": "The with_skill run perfectly demonstrates the design gate for an ambiguous specification. All 6 assertions pass. The trace shows the full design gate flow: detect ambiguity, ask targeted questions one at a time, present architectural trade-offs with pros/cons, produce a formal design summary, and enforce the hard gate before any code. This eval validates the core value proposition of the design gate for underspecified requirements."
+  }
+}

@@ -1,0 +1,56 @@
+{
+  "expectations": [
+    {
+      "text": "Triggers the design gate (Phase 0) due to ambiguity",
+      "passed": false,
+      "evidence": "Trace: 'Would Claude run a proper design gate? NO. This is the critical gap for this eval.' Summary: 'Design gate: NO — This is THE critical gap — ambiguous spec proceeds without formal design.' No Phase 0 concept exists in baseline."
+    },
+    {
+      "text": "Asks clarifying questions about the payment system — does NOT assume specific technologies or providers",
+      "passed": false,
+      "evidence": "Trace Step 2: 'Path A (more likely): Ask some clarifying questions, then proceed based on assumptions. The questions would be informal, not structured.' However: 'Neither path involves targeted 1-at-a-time questions, explicit architectural trade-offs, a formal design summary, a hard gate requiring user approval.' Baseline may ask questions but they are informal and likely assume common patterns (Stripe)."
+    },
+    {
+      "text": "Asks questions one at a time, not as a dump of 10 questions at once",
+      "passed": false,
+      "evidence": "Trace: 'Questionnaire dump: Likely asks multiple questions at once instead of 1-at-a-time.' Summary: 'Targeted questions (1 at a time): NO — Likely a questionnaire dump or assumptions.' The baseline pattern is to batch questions."
+    },
+    {
+      "text": "Does NOT start writing code or tests before clarifying the spec",
+      "passed": false,
+      "evidence": "Trace Step 2 Path B: 'Make assumptions and start coding immediately, documenting assumptions in comments or a brief note.' Even Path A (ask some questions) lacks a hard gate: 'Start coding once it has \"enough\" context (no hard gate).' Summary: 'Hard gate (approval before code): NO — Coding starts after informal Q&A or assumptions.'"
+    },
+    {
+      "text": "Proposes design approaches with trade-offs (e.g., Stripe vs custom, sync vs async processing)",
+      "passed": false,
+      "evidence": "Trace: 'Not present explicit architectural trade-offs.' Summary: 'Architectural trade-offs: NO — No explicit options with pros/cons.' Baseline would likely default to a common pattern without presenting alternatives."
+    },
+    {
+      "text": "Waits for user approval of the design before decomposing into work units",
+      "passed": false,
+      "evidence": "Trace: 'No hard gate: Coding starts without explicit user approval of design.' Summary: 'Hard gate (approval before code): NO — Coding starts after informal Q&A or assumptions.' No design document is produced and no approval is requested before implementation begins."
+    }
+  ],
+  "summary": {
+    "passed": 0,
+    "failed": 6,
+    "total": 6,
+    "pass_rate": 0.0
+  },
+  "claims": [
+    "Baseline has no design gate concept — ambiguous specs proceed with implicit assumptions",
+    "Clarifying questions (if asked at all) are informal and likely batched, not one-at-a-time",
+    "No architectural trade-offs presented: technology choices made implicitly",
+    "No hard gate: code writing may start before spec is fully clarified",
+    "The user's explicit 'idk the details yet' signal is not handled with structured design refinement",
+    "Scope boundaries never formalized — 'refunds maybe?' resolved implicitly"
+  ],
+  "eval_feedback": {
+    "suggestions": [
+      "Assertion 2 is the most nuanced for baseline. Claude does sometimes ask clarifying questions, but they lack the structure and independence from assumptions that the skill provides. Consider measuring the quality of questions asked, not just their presence.",
+      "Future evals could capture the actual baseline output for an ambiguous spec to see what implicit decisions it makes, enabling comparison with the with_skill design summary.",
+      "This eval most clearly demonstrates the design gate's value. Consider using it as the lead example in skill documentation."
+    ],
+    "overall": "The baseline fails all 6 assertions for the ambiguous spec. This is the eval where the design gate's absence is most impactful: the user explicitly says 'idk the details yet' but baseline proceeds with implicit assumptions rather than structured design refinement. No trade-offs are presented, no formal design summary is produced, and no hard gate prevents premature code writing. The contrast with the with_skill run (which transforms 'idk' into a concrete, user-approved design) is the clearest demonstration of the skill's value."
+  }
+}

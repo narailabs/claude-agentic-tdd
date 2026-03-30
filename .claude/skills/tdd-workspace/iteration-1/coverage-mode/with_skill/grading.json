@@ -1,0 +1,61 @@
+{
+  "expectations": [
+    {
+      "text": "Detects entry point mode 2 — existing codebase coverage mode",
+      "passed": true,
+      "evidence": "Step 5: 'User says \"add test coverage for...\" — this is Mode 2: Existing Codebase. Target directory: src/utils/.' Mode 2 explicitly detected with correct target."
+    },
+    {
+      "text": "Reads and analyzes the existing source files in src/utils/ before writing tests",
+      "passed": true,
+      "evidence": "Step 8 Phase 2: 'Read the contents of src/utils/ to find existing source files.' Three files discovered (format.ts, validate.ts, transform.ts). For each, the lead reads the code and derives a behavioral spec-contract listing exported functions with their signatures."
+    },
+    {
+      "text": "Skips the design gate because --skip-design flag was passed",
+      "passed": true,
+      "evidence": "Step 2: 'Flag: --skip-design detected.' Step 6: 'SKIPPED — Mode 2 skips by default (characterizing existing code, not designing new features). Also --skip-design flag is set.' Both the default Mode 2 behavior and the explicit flag contribute."
+    },
+    {
+      "text": "Generates tests derived from reading specific source file contents (function signatures, return types, edge cases) — not just generic tests",
+      "passed": true,
+      "evidence": "Step 8 shows spec-contracts derived from reading source code: format.ts exports formatDate, formatCurrency, formatPercentage; validate.ts exports isEmail, isURL, isPhoneNumber; transform.ts exports camelToSnake, snakeToCamel, flattenObject. Test Writers receive these specific contracts. Step 4a test descriptions reference specific function behavior (e.g., 'formatDate: returns ISO string, handles invalid dates')."
+    },
+    {
+      "text": "Describes or resolves the tension between RED verification and existing implementations",
+      "passed": true,
+      "evidence": "Step 5 notes: 'RED verification uses hide-and-restore.' Step 4b explicitly describes the tension: in coverage mode, the implementation already exists, so standard RED (tests fail because no implementation) does not apply. Instead, the hide-and-restore protocol is used to verify tests depend on real code."
+    },
+    {
+      "text": "Demonstrates the adapted hide-and-restore RED verification procedure for coverage mode",
+      "passed": true,
+      "evidence": "Step 4b Coverage Mode RED: Step 1 hides implementation (mv format.ts format.ts.tdd-hidden), Step 2 runs tests expecting failure ('Cannot find module'), Step 3 restores implementation (mv back), Step 4 runs tests expecting pass ('characterization is accurate'). Both steps verified with exit code checks. Full procedure documented with bash commands."
+    },
+    {
+      "text": "Produces a report showing coverage additions",
+      "passed": true,
+      "evidence": "Step 12 Phase 6: 'Generate tdd-report.md: 3/3 units completed, Mode: existing-codebase, Code Writer: skipped for all units (characterization against existing code), RED verification: coverage mode (hide-and-restore) — all passed, GREEN verification: passed, All reviews passed.'"
+    }
+  ],
+  "summary": {
+    "passed": 7,
+    "failed": 0,
+    "total": 7,
+    "pass_rate": 1.0
+  },
+  "claims": [
+    "Mode 2 (existing codebase coverage) correctly detected and adapts the pipeline",
+    "Source files read and analyzed to derive behavioral spec-contracts per module",
+    "Hide-and-restore RED verification procedure fully demonstrated with mv/test/restore/test cycle",
+    "Code Writer correctly identified as no-op when characterization tests pass against existing code",
+    "Three-stage review still runs: spec compliance checks API surface coverage, adversarial checks assertion quality",
+    "--skip-design flag correctly parsed (redundant with Mode 2 default but handled)"
+  ],
+  "eval_feedback": {
+    "suggestions": [
+      "Consider adding an assertion about what happens when characterization tests fail (step 4 of hide-and-restore returns non-zero). The trace mentions re-prompting the Test Writer but does not exercise this path.",
+      "The report says 'coverage additions' but does not quantify them (e.g., line coverage percentage before and after). A future iteration could add actual coverage measurement.",
+      "The eval does not test what happens when a source file has no exports or has complex dependency imports. Edge cases in source analysis would strengthen the eval."
+    ],
+    "overall": "The with_skill run demonstrates all 7 coverage-mode-specific behaviors. The hide-and-restore RED verification procedure is the key differentiator — it solves the fundamental tension between TDD's RED phase and existing implementations. All assertions pass. The trace is particularly thorough in documenting the four-step verification procedure and explaining why the Code Writer is a no-op in coverage mode."
+  }
+}

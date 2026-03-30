@@ -223,6 +223,18 @@ Examine the work units for dependencies:
 - Units that operate on the same data structures may need sequencing
 - Independent units can run in parallel
 
+### Spec Analysis
+
+Before presenting the plan, scan the specification for ambiguities that could lead to incorrect implementations. Specifically check for:
+
+1. **Contradictions**: Do different parts of the spec disagree? (e.g., a method description says "return IDs" but a dependency note says "resolve names")
+2. **Undefined relationships**: Does the spec define a field AND a method that seem related but doesn't say how they interact? (e.g., a stored `estimatedDelivery` field and a `estimateDelivery()` method — should the method update the field?)
+3. **Ambiguous terms**: Are there industry terms with multiple interpretations? (e.g., "buy-2-get-1-free" — does it require 3 items or 2?)
+4. **Missing edge cases**: What happens at boundaries the spec doesn't address?
+5. **Dependency graph vs API mismatch**: Does the dependency graph claim a relationship that no method actually uses?
+
+Include any findings in the work plan presented to the user as a **Spec Clarifications Needed** section. The user can resolve them before work begins, preventing wasted implementation effort.
+
 ### User Confirmation
 
 Present the decomposition to the user:
@@ -512,6 +524,12 @@ After ALL work units complete:
 3. **Review all generated code holistically** — look for inconsistencies, naming conflicts, missing connections between units
 4. **Cross-unit integration check**: Do units that depend on each other actually work together? Run any integration tests.
 5. If integration issues found: report them with evidence (actual test output) and fix before proceeding.
+6. **Spec gap retrospective**: Review the implementation for assumptions that weren't explicit in the spec. Look for:
+   - Dependencies injected but never used (suggests a spec requirement was missed)
+   - Ambiguous terms that were interpreted one way but could go another
+   - Fields and methods with overlapping responsibility (who owns the data?)
+   - Edge cases the implementation handles that the spec didn't define
+   Include findings in the report under "Spec Gaps." These help the user improve their specs for future work.
 
 ### Verification Anti-Rationalization
 

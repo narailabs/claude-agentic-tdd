@@ -63,6 +63,16 @@ Generate at the end of each session. Human-readable Markdown.
 [Results of running the full test suite after all units complete]
 - All tests passing: [yes/no]
 - Integration issues found: [list if any]
+
+## Spec Gaps
+
+[Ambiguities, contradictions, or undefined behaviors found during implementation]
+
+| # | Gap | Where Found | Assumption Made | Recommendation |
+|---|-----|-------------|-----------------|----------------|
+| 1 | [description] | [phase/unit] | [what the implementation assumed] | [how to clarify the spec] |
+
+If no gaps found, write "No spec gaps identified."
 ```
 
 ## tdd-session.jsonl

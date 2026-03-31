@@ -122,7 +122,17 @@ Verify exit 0 and that the output confirms `stateFile` and `logFile` were create
 
 ## Phase 4: Agent Team Orchestration
 
-**Create the team**: Use `TeamCreate` to create a team named `"tdd-session"`.
+**Generate a unique team name**: Derive `{team_name}` from the working directory
+to avoid collisions when multiple `/tdd` sessions run concurrently on different
+folders. Use: `tdd-` + first 8 characters of the SHA-256 hash of `{user_cwd}`.
+For example, compute it via Bash:
+```bash
+echo -n "{user_cwd}" | shasum -a 256 | cut -c1-8
+```
+Then the team name is `"tdd-a1b2c3d4"`. Store `{team_name}` and use it for all
+Agent tool dispatches and the final TeamDelete.
+
+**Create the team**: Use `TeamCreate` to create a team named `{team_name}`.
 
 **Flow control**: Once the user confirms the plan, execution is fully autonomous.
 Do not pause between steps or wait for user input. Only stop for: blocked agents,
@@ -159,7 +169,7 @@ For each work unit, execute steps 4a through 4g. Entry mode affects the flow:
 3. Fill all placeholders: `{spec_contract}`, `{language}`, `{test_runner}`,
    `{test_command}`, `{test_file_paths}`, `{min_assertions}`, `{unit_id}`,
    `{project_conventions_from_claude_md}`
-4. Dispatch a teammate using the Agent tool with `team_name: "tdd-session"`.
+4. Dispatch a teammate using the Agent tool with `team_name: {team_name}`.
    Give it tools: Read, Write, Glob, Grep, Bash. Send the filled prompt.
 5. Wait for completion
 6. Verify test files and `spec-contract-{unit.id}.md` exist on disk
@@ -209,7 +219,7 @@ is driven by the tests alone, not by shared context.
 4. Fill the template with the disk-read contents: `{test_file_contents_verbatim}`,
    `{spec_contract_file_contents}`, `{language}`, `{test_runner}`, `{test_command}`,
    `{impl_file_paths}`, `{project_conventions_from_claude_md}`
-5. Dispatch a teammate using the Agent tool with `team_name: "tdd-session"`.
+5. Dispatch a teammate using the Agent tool with `team_name: {team_name}`.
    Give it tools: Read, Write, Glob, Grep, Bash. Send the filled prompt.
 6. The prompt MUST NOT contain any Test Writer reasoning, approach, or history
 7. Wait for completion
@@ -253,7 +263,7 @@ or the implementation may satisfy tests while missing requirements.
 2. Use the Read tool to load `reference/spec-compliance-reviewer-prompt.md`
 3. Fill the template: `{spec_contract}`, `{design_summary}`, `{test_file_contents}`,
    `{impl_file_contents}`, `{unit_name}`
-4. Dispatch a reviewer teammate using the Agent tool with `team_name: "tdd-session"`.
+4. Dispatch a reviewer teammate using the Agent tool with `team_name: {team_name}`.
    Give it read-only tools: Read, Glob, Grep.
 5. Parse the response for `COMPLIANT` or `NON-COMPLIANT`
 6. If `NON-COMPLIANT`: send blocking issues back to the Code Writer (or Test
@@ -270,7 +280,7 @@ the spec compliance review does not look for.
 2. Use the Read tool to load `reference/adversarial-reviewer-prompt.md`
 3. Fill the template: `{spec_contract}`, `{test_file_contents}`,
    `{impl_file_contents}`, `{unit_name}`, `{min_assertions}`
-4. Dispatch a reviewer teammate with `team_name: "tdd-session"`. Read-only
+4. Dispatch a reviewer teammate with `team_name: {team_name}`. Read-only
    tools: Read, Glob, Grep.
 5. Parse the response for `PASS` or `FAIL`
 6. If `FAIL`: send critical issues back for revision, then **re-run this review**
@@ -283,7 +293,7 @@ checks structure, naming, discipline, and maintainability.
 1. Use the Read tool to read impl files and test files from disk
 2. Use the Read tool to load `reference/code-quality-reviewer-prompt.md`
 3. Fill the template with what was implemented and the file contents
-4. Dispatch a reviewer teammate with `team_name: "tdd-session"`. Read-only
+4. Dispatch a reviewer teammate with `team_name: {team_name}`. Read-only
    tools: Read, Glob, Grep.
 5. Parse the response for `Approved` or `Needs Changes`
 6. If `Needs Changes`: send issues back for fixes, then **re-run this review**
@@ -357,7 +367,7 @@ The report is written to `{user_cwd}/tdd-report.md`.
 
 ## Phase 7: Cleanup
 
-1. Use `TeamDelete` to shut down the `"tdd-session"` team and all teammates
+1. Use `TeamDelete` to shut down the `{team_name}` team and all teammates
 2. Delete spec-contract files: `rm -f {user_cwd}/spec-contract-*.md`
 3. Present the report summary to the user
 4. Suggest next steps: commit the code, run the full test suite manually,

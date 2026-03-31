@@ -52,6 +52,85 @@ Parse `$ARGUMENTS` for:
 - `--model-strategy <s>`: `auto`, `standard`, `capable`
 - `--resume`: resume from existing `.tdd-state.json`
 
+## Resume Flow (when `--resume` is set)
+
+**Why**: Long-running TDD sessions may be interrupted by rate limits, network
+failures, or the user closing the conversation. The state file captures enough
+to resume safely without re-doing completed work or leaving half-done units in
+an inconsistent state.
+
+When `--resume` is present (or when `.tdd-state.json` exists and the user says
+"resume" or "continue"):
+
+### Step R1: Load and Verify State
+
+```bash
+cd {plugin_root} && npx tsx skills/tdd/scripts/check-state.ts \
+  --working-dir {user_cwd}
+```
+
+If exit 1: show the violations to the user. For checksum mismatches or missing
+files, the affected units must be restarted from scratch (mark them PENDING).
+Fix the state before proceeding.
+
+If exit 0 or after fixes: load the state file to get all work units, framework
+info, config, entry mode, and spec.
+
+### Step R2: Restore Task List
+
+For each work unit in the state, create a task via `TaskCreate`:
+- **COMPLETED** units: create the task and immediately mark it `completed`
+- **FAILED** units: create the task and mark it `completed` (with failure note)
+- **PENDING** units: create the task, leave as `pending`
+- **Any other status** (interrupted mid-pipeline): create the task, leave as
+  `pending` — these will be restarted
+
+This restores the full task list so the user sees the same progress view.
+
+### Step R3: Determine Resume Point
+
+For each non-COMPLETED, non-FAILED unit, determine where to restart based on
+its status. The rule is: **roll back to the last verified checkpoint**.
+
+| Unit Status at Interruption | Resume From | Why |
+|----|----|----|
+| `PENDING` | Step 4a (Test Writer) | Not started |
+| `TEST_WRITING` | Step 4a (Test Writer) | Test Writer didn't finish, redo |
+| `RED_VERIFICATION` (passed) | Step 4c (Code Writer) | RED is a verified checkpoint — checksums exist, tests confirmed failing. Skip test writing. |
+| `RED_VERIFICATION` (failed/pending) | Step 4a (Test Writer) | RED failed, redo tests |
+| `CODE_WRITING` | Step 4c (Code Writer) | Code Writer didn't finish, but RED passed — redo code writing only |
+| `GREEN_VERIFICATION` (passed) | Step 4e (Spec Review) | GREEN is a verified checkpoint — tests pass, checksums match. Skip to reviews. |
+| `GREEN_VERIFICATION` (failed/pending) | Step 4c (Code Writer) | GREEN failed, redo implementation |
+| `SPEC_REVIEW` | Step 4e (Spec Review) | Review didn't finish, redo reviews |
+| `ADVERSARIAL_REVIEW` | Step 4f (Adversarial Review) | Spec review passed, continue from adversarial |
+| `CODE_QUALITY_REVIEW` | Step 4g (Code Quality Review) | Prior reviews passed, continue from code quality |
+
+The key principle: **only trust script-verified checkpoints** (RED passed with
+checksums, GREEN passed with checksums). Anything that was mid-agent (writing,
+reviewing) gets restarted because we cannot verify partial agent work.
+
+For units resuming from RED (Step 4c), read the stored `testFileChecksums`
+from the state's `redVerification` field — these are needed for GREEN.
+
+### Step R4: Skip to Phase 4
+
+Resume skips Phases 0–3 entirely (design, detection, decomposition, state init)
+since all of that is already captured in the state file. Go directly to Phase 4
+(Agent Team Orchestration), respecting dependency order and the resume points
+from Step R3.
+
+Log the resume event:
+```bash
+cd {plugin_root} && npx tsx skills/tdd/scripts/log-event.ts \
+  --working-dir {user_cwd} --event "session.resumed" \
+  --data-json '{"completedUnits": N, "resumingUnits": M, "pendingUnits": P}'
+```
+
+Then continue with Phase 4 as normal, except units resume from their determined
+restart point instead of always starting at Step 4a.
+
+---
+
 ## Phase 0: Design Gate (Optional, Conversational)
 
 **Why**: Complex specs need clarification before decomposition. Ambiguity here

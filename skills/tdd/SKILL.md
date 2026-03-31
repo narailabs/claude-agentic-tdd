@@ -76,6 +76,31 @@ Fix the state before proceeding.
 If exit 0 or after fixes: load the state file to get all work units, framework
 info, config, entry mode, and spec.
 
+### Step R1b: Code Audit Agent
+
+**Why**: `check-state.ts` verifies checksums and file existence, but it cannot
+judge whether partial implementation code is coherent, whether test files are
+syntactically valid, or whether the project is in a buildable state. Before
+resuming, dispatch a separate audit agent to inspect the actual code on disk.
+
+Spawn an agent (via the Agent tool, no team needed) with tools: Read, Glob,
+Grep, Bash. Prompt it to:
+
+1. Run `{testCommand}` — report pass/fail/compilation errors
+2. For each completed unit: read test + impl files, confirm non-empty and valid
+3. For each in-progress unit: report what files exist vs what's missing
+4. Check for orphaned `spec-contract-*.md` files not matching any unit
+5. Return JSON: `{buildable, testsRun: {passed, failed, errors},
+   completedUnitsValid: [...], completedUnitsInvalid: [{id, issue}],
+   inProgressState: [{id, filesOnDisk, missing}], orphanedFiles}`
+
+Provide the completed/in-progress unit lists and test command in the prompt.
+
+Act on the result:
+- `buildable: false`: fix compilation errors before resuming
+- `completedUnitsInvalid`: demote those units to PENDING (redo from scratch)
+- Present the audit summary to the user before continuing
+
 ### Step R2: Restore Task List
 
 For each work unit in the state, create a task via `TaskCreate`:
@@ -92,22 +117,18 @@ This restores the full task list so the user sees the same progress view.
 For each non-COMPLETED, non-FAILED unit, determine where to restart based on
 its status. The rule is: **roll back to the last verified checkpoint**.
 
-| Unit Status at Interruption | Resume From | Why |
-|----|----|----|
-| `PENDING` | Step 4a (Test Writer) | Not started |
-| `TEST_WRITING` | Step 4a (Test Writer) | Test Writer didn't finish, redo |
-| `RED_VERIFICATION` (passed) | Step 4c (Code Writer) | RED is a verified checkpoint — checksums exist, tests confirmed failing. Skip test writing. |
-| `RED_VERIFICATION` (failed/pending) | Step 4a (Test Writer) | RED failed, redo tests |
-| `CODE_WRITING` | Step 4c (Code Writer) | Code Writer didn't finish, but RED passed — redo code writing only |
-| `GREEN_VERIFICATION` (passed) | Step 4e (Spec Review) | GREEN is a verified checkpoint — tests pass, checksums match. Skip to reviews. |
-| `GREEN_VERIFICATION` (failed/pending) | Step 4c (Code Writer) | GREEN failed, redo implementation |
-| `SPEC_REVIEW` | Step 4e (Spec Review) | Review didn't finish, redo reviews |
-| `ADVERSARIAL_REVIEW` | Step 4f (Adversarial Review) | Spec review passed, continue from adversarial |
-| `CODE_QUALITY_REVIEW` | Step 4g (Code Quality Review) | Prior reviews passed, continue from code quality |
+| Status at Interruption | Resume From |
+|----|----|
+| `PENDING` / `TEST_WRITING` | Step 4a (Test Writer) |
+| `RED_VERIFICATION` (passed) / `CODE_WRITING` | Step 4c (Code Writer) |
+| `RED_VERIFICATION` (failed) | Step 4a (Test Writer) |
+| `GREEN_VERIFICATION` (passed) / `SPEC_REVIEW` | Step 4e (Spec Review) |
+| `GREEN_VERIFICATION` (failed) | Step 4c (Code Writer) |
+| `ADVERSARIAL_REVIEW` | Step 4f (Adversarial Review) |
+| `CODE_QUALITY_REVIEW` | Step 4g (Code Quality Review) |
 
-The key principle: **only trust script-verified checkpoints** (RED passed with
-checksums, GREEN passed with checksums). Anything that was mid-agent (writing,
-reviewing) gets restarted because we cannot verify partial agent work.
+The key principle: **only trust script-verified checkpoints** (RED/GREEN with
+checksums). Anything mid-agent gets restarted.
 
 For units resuming from RED (Step 4c), read the stored `testFileChecksums`
 from the state's `redVerification` field — these are needed for GREEN.

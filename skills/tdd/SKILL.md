@@ -78,44 +78,21 @@ info, config, entry mode, and spec.
 
 ### Step R1b: Code Audit Agent
 
-**Why**: `check-state.ts` verifies checksums and file existence, but it cannot
-judge whether partial implementation code is coherent, whether test files are
-syntactically valid, or whether the project is in a buildable state. Before
-resuming, dispatch a separate audit agent to inspect the actual code on disk.
-
-Spawn an agent (via the Agent tool, no team needed) with tools: Read, Glob,
-Grep, Bash. Prompt it to:
-
-1. Run `{testCommand}` — report pass/fail/compilation errors
-2. For each completed unit: read test + impl files, confirm non-empty and valid
-3. For each in-progress unit: report what files exist vs what's missing
-4. Check for orphaned `spec-contract-*.md` files not matching any unit
-5. Return JSON: `{buildable, testsRun: {passed, failed, errors},
-   completedUnitsValid: [...], completedUnitsInvalid: [{id, issue}],
-   inProgressState: [{id, filesOnDisk, missing}], orphanedFiles}`
-
-Provide the completed/in-progress unit lists and test command in the prompt.
-
-Act on the result:
-- `buildable: false`: fix compilation errors before resuming
-- `completedUnitsInvalid`: demote those units to PENDING (redo from scratch)
-- Present the audit summary to the user before continuing
+Spawn an agent (Agent tool, no team) with tools: Read, Glob, Grep, Bash.
+Prompt it to: run `{testCommand}`, validate completed unit files are non-empty,
+report in-progress unit file state, check for orphaned spec-contract files.
+Return JSON with `buildable`, `completedUnitsValid`, `completedUnitsInvalid`,
+`inProgressState`. If `buildable: false`, fix compilation errors. If any
+completed units are invalid, demote to PENDING. Present summary to user.
 
 ### Step R2: Restore Task List
 
-For each work unit in the state, create a task via `TaskCreate`:
-- **COMPLETED** units: create the task and immediately mark it `completed`
-- **FAILED** units: create the task and mark it `completed` (with failure note)
-- **PENDING** units: create the task, leave as `pending`
-- **Any other status** (interrupted mid-pipeline): create the task, leave as
-  `pending` — these will be restarted
-
-This restores the full task list so the user sees the same progress view.
+Create a `TaskCreate` per work unit. Mark COMPLETED/FAILED units as `completed`.
+Leave PENDING and interrupted units as `pending` (they will be restarted).
 
 ### Step R3: Determine Resume Point
 
-For each non-COMPLETED, non-FAILED unit, determine where to restart based on
-its status. The rule is: **roll back to the last verified checkpoint**.
+Roll back each interrupted unit to its **last script-verified checkpoint**:
 
 | Status at Interruption | Resume From |
 |----|----|
@@ -124,31 +101,15 @@ its status. The rule is: **roll back to the last verified checkpoint**.
 | `RED_VERIFICATION` (failed) | Step 4a (Test Writer) |
 | `GREEN_VERIFICATION` (passed) / `SPEC_REVIEW` | Step 4e (Spec Review) |
 | `GREEN_VERIFICATION` (failed) | Step 4c (Code Writer) |
-| `ADVERSARIAL_REVIEW` | Step 4f (Adversarial Review) |
-| `CODE_QUALITY_REVIEW` | Step 4g (Code Quality Review) |
+| `ADVERSARIAL_REVIEW` | Step 4f |
+| `CODE_QUALITY_REVIEW` | Step 4g |
 
-The key principle: **only trust script-verified checkpoints** (RED/GREEN with
-checksums). Anything mid-agent gets restarted.
-
-For units resuming from RED (Step 4c), read the stored `testFileChecksums`
-from the state's `redVerification` field — these are needed for GREEN.
+For units resuming from RED, read stored `testFileChecksums` from the state.
 
 ### Step R4: Skip to Phase 4
 
-Resume skips Phases 0–3 entirely (design, detection, decomposition, state init)
-since all of that is already captured in the state file. Go directly to Phase 4
-(Agent Team Orchestration), respecting dependency order and the resume points
-from Step R3.
-
-Log the resume event:
-```bash
-cd {plugin_root} && npx tsx skills/tdd/scripts/log-event.ts \
-  --working-dir {user_cwd} --event "session.resumed" \
-  --data-json '{"completedUnits": N, "resumingUnits": M, "pendingUnits": P}'
-```
-
-Then continue with Phase 4 as normal, except units resume from their determined
-restart point instead of always starting at Step 4a.
+Resume skips Phases 0–3 (already in state). Log the resume event and continue
+with Phase 4, respecting resume points from R3 and two-wave execution order.
 
 ---
 
@@ -194,10 +155,41 @@ focused, independently verifiable units.
    - `name`: human-readable name
    - `specContract`: detailed behavioral contract for this unit
    - `unitType`: `"code"` or `"task"` (non-code work like configs, migrations)
+   - `wave`: `"backend"` or `"frontend"` (see classification below)
    - `dependsOn`: list of unit IDs this depends on
    - `testFiles`: paths for test files to create
    - `implFiles`: paths for implementation files to create
    - `complexity`: `"mechanical"`, `"standard"`, or `"architecture"`
+
+### Backend vs Frontend Classification
+
+After producing the unit list, classify each unit:
+
+- **Frontend**: Unit's files target typical frontend paths (`src/public/`,
+  `src/components/`, `pages/`, `app/`, `*.html`, `*.css`, `*.jsx`, `*.tsx`,
+  `*.vue`, `*.svelte`) OR its spec-contract describes UI rendering, user
+  interaction, or visual output.
+- **Backend**: Everything else — API routes, business logic, data models,
+  server config, migrations, non-code tasks.
+
+Tag each unit with `wave: "backend"` or `wave: "frontend"`. Present them
+grouped by wave in the work plan so the user sees the execution order.
+
+### Enriched Sub-Specs
+
+**When to generate**: If the decomposition produces 3+ units with inter-
+dependencies, or `--effort` is `high` or `max`, generate enriched sub-specs
+instead of basic spec-contracts. For 1-2 simple units, use basic contracts.
+
+**What enriched sub-specs add** (beyond the basic behavioral description):
+- Input/output type definitions (function signatures, API request/response shapes)
+- Error cases with expected error types
+- Edge cases explicitly called out
+- Interface contracts with other units (what this unit consumes from dependencies)
+
+Frontend sub-specs are NOT generated here — they are synthesized later, between
+the backend and frontend waves, using the actual implemented API (see Phase 4).
+
 4. Present the work plan to the user and wait for confirmation
 
 ## Phase 3: State Initialization (Script)
@@ -260,28 +252,50 @@ Do not pause between steps or wait for user input. Only stop for: blocked agents
 unresolvable failures after max retries, or missing information that only the
 user can provide.
 
-Process work units respecting dependency order. Units whose `dependsOn` are all
-completed can run concurrently, up to `--parallel` concurrent pipelines.
+### Two-Wave Execution: Backend First, Then Frontend
+
+Execute work units in two waves. **No mixing** — all backend units must reach
+COMPLETED (or FAILED with `--skip-failed`) before any frontend unit starts.
+
+**Wave 1 — Backend**: Dispatch all `wave: "backend"` units, respecting
+`dependsOn` order, up to `--parallel` concurrent pipelines. Each unit follows
+the full pipeline (Steps 4a–4g). Wait for all backend units to finish.
+
+**Between waves — Frontend Sub-Spec Synthesis**: After all backend units
+complete, before dispatching frontend units:
+
+1. Use the Read tool to read the implemented backend route files from disk
+2. Extract: endpoint paths, HTTP methods, request body shapes, response shapes,
+   error response formats
+3. Read the original spec's frontend section
+4. For each frontend unit, synthesize an enriched sub-spec that includes:
+   - Available API endpoints with example request/response shapes
+   - Component/page responsibilities from the spec
+   - User interaction flows (what happens on click, submit, navigate)
+   - Error handling (what errors the API returns, how to display them)
+   - State management approach (what data to fetch, when to refresh)
+5. Write each frontend sub-spec to `spec-contract-{unit.id}.md` on disk
+
+This is the key quality difference — frontend agents get a detailed spec
+informed by the actual backend implementation, not just the raw spec section.
+
+**Wave 2 — Frontend**: Dispatch all `wave: "frontend"` units, up to `--parallel`
+concurrent pipelines. For framework-based frontends (React, Vue, Svelte), use
+the full TDD pipeline (Steps 4a–4g). For vanilla JS frontends (no test
+framework), use the task pipeline (implementer → spec-compliance + code-quality
+review, skip adversarial — same as Step 4h for non-code tasks).
+
+If the spec has no frontend units, Wave 2 is skipped entirely.
 
 For each work unit, execute steps 4a through 4g. Entry mode affects the flow:
 
 ### Entry Mode Branching
 
-- **`natural-language-spec`** (default): Run all steps 4a–4g as written below.
-- **`user-provided-test`**: The user already provided a failing test file. **Skip
-  Step 4a (Test Writer)** — go straight to Step 4b (RED verification) using the
-  user's existing test file. The test file is already on disk; read it with the
-  Read tool and use it as-is. All other steps (4b–4g) proceed normally.
-- **`existing-codebase`** (coverage mode): Implementation already exists on disk.
-  In Phase 2, **read the existing source files** (`Read` tool) to understand what
-  code exists before generating spec-contracts and test plans. Run Step 4a (Test
-  Writer), but instruct it that implementation already exists. In Step 4b (RED
-  verification), note that the script handles this mode specially — it uses a
-  hide-and-restore strategy: temporarily renames impl files so tests fail without
-  them, verifying the tests are genuine. After RED, the impl files are restored
-  and the Code Writer adjusts as needed so tests pass.
-- **`plan-execution`**: Mixed code and non-code tasks. Code units follow the full
-  pipeline (4a–4g). Non-code task units use the implementer path (Step 4h).
+- **`natural-language-spec`** (default): Steps 4a–4g as written below.
+- **`user-provided-test`**: **Skip 4a** — go to 4b with the user's test file.
+- **`existing-codebase`** (coverage): Read existing source in Phase 2. Step 4b
+  uses hide-and-restore (renames impl → tests fail → restore → Code Writer fixes).
+- **`plan-execution`**: Code units → 4a–4g. Non-code task units → Step 4h.
 
 ### Step 4a: Test Writer
 

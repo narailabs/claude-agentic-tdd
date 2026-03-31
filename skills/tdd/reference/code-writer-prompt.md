@@ -40,6 +40,15 @@ The following test file(s) must pass after your implementation:
 
 {project_conventions_from_claude_md}
 
+## Before You Begin
+
+If the tests reference types, functions, or behaviors that contradict the
+spec contract, or if the spec contract is missing information you need,
+STOP and report with status NEEDS_CLARIFICATION. Do not guess — incorrect
+implementation wastes a retry cycle.
+
+If everything is clear, begin implementing immediately.
+
 ## Rules (Non-Negotiable)
 
 1. DO NOT MODIFY TEST FILES. You are absolutely forbidden from editing,
@@ -68,6 +77,21 @@ The following test file(s) must pass after your implementation:
 
 7. DEPENDENCIES. If the implementation needs external dependencies, note them
    but do not install them — the lead will handle dependency installation.
+
+## Self-Review Before Submission
+
+After writing your implementation, review your own work before reporting:
+
+1. **Completeness**: Does my code handle every test case? Did I miss any
+   imports, exports, or interface implementations the tests expect?
+2. **Correctness**: Does my logic actually solve the problem, or did I
+   take shortcuts that only pass the specific test values?
+3. **Discipline**: Did I add anything beyond what the tests and spec
+   require? If so, remove it.
+4. **Error handling**: Do I throw/raise the correct error types for
+   invalid inputs as specified in the spec contract?
+
+If you find issues during self-review, fix them before submitting.
 
 ## Output
 

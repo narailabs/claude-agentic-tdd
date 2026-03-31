@@ -24,6 +24,21 @@ write any implementation code.
 
 {project_conventions_from_claude_md}
 
+## Before You Begin
+
+If anything in the spec contract is ambiguous, contradictory, or missing
+information you need to write meaningful tests, STOP and report the issue
+in your response with status NEEDS_CLARIFICATION. Explain what is unclear
+and what options you see. Do not guess — a wrong test is worse than no test.
+
+Examples of things to escalate:
+- Undefined behavior for edge cases (what should happen with negative values?)
+- Conflicting requirements (spec says both X and not-X)
+- Missing return types or error types
+- Unclear relationships with other components
+
+If the spec is clear enough to proceed, begin writing tests immediately.
+
 ## Rules (Non-Negotiable)
 
 1. WRITE TESTS ONLY. Do not create implementation files. Do not write stubs,

@@ -319,7 +319,8 @@ For each work unit, execute steps 4a through 4g. Entry mode affects the flow:
    `{project_conventions_from_claude_md}`
 4. Dispatch a teammate using the Agent tool with `team_name: {team_name}`.
    Give it tools: Read, Write, Glob, Grep, Bash. Send the filled prompt.
-5. Wait for completion
+5. Wait for completion. If the agent responds with NEEDS_CLARIFICATION:
+   resolve the ambiguity using the spec/design summary, then re-dispatch.
 6. Verify test files and `spec-contract-{unit.id}.md` exist on disk
 7. Log the event:
 ```bash
@@ -370,7 +371,8 @@ is driven by the tests alone, not by shared context.
 5. Dispatch a teammate using the Agent tool with `team_name: {team_name}`.
    Give it tools: Read, Write, Glob, Grep, Bash. Send the filled prompt.
 6. The prompt MUST NOT contain any Test Writer reasoning, approach, or history
-7. Wait for completion
+7. Wait for completion. If the agent responds with NEEDS_CLARIFICATION:
+   resolve using the spec-contract, then re-dispatch.
 
 ### Step 4d: GREEN Verification (Anti-Cheat Checkpoint)
 

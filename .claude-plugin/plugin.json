@@ -1,7 +1,7 @@
 {
   "name": "agentic-tdd",
   "description": "Enforced Test-Driven Development with Claude Code agent teams. SKILL.md orchestrates TeamCreate/SendMessage/TeamDelete for creative work, TypeScript verification scripts enforce anti-cheat checkpoints via Bash. Script output is in the conversation and cannot be fabricated.",
-  "version": "4.2.1",
+  "version": "4.3.0",
   "author": {
     "name": "NarAI Labs",
     "url": "https://github.com/narailabs"

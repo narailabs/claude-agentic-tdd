@@ -26,6 +26,12 @@ Before anything else, verify the environment:
    the user to enable it and stop.
 2. Confirm we are in a git repository (run `git rev-parse --is-inside-work-tree`).
    TDD state files need a working directory root.
+3. Check if the Claude-in-Chrome browser extension is available by calling
+   `mcp__claude-in-chrome__tabs_context_mcp`. If it responds, store
+   `{chrome_available: true}`. If it errors or is not found, set `false`.
+   Tell the user: "For best results, enable the Claude-in-Chrome extension —
+   it allows full E2E testing of the frontend after implementation."
+   This is a recommendation, not a blocker — the pipeline works without it.
 
 ## Plugin Root
 
@@ -484,6 +490,69 @@ cd {user_cwd} && {testCommand}
 4. Spec gap retrospective: flag assumptions made, unused dependencies, and
    ambiguous interpretations encountered during the session
 
+## Phase 5b: QA Test Plan and E2E Testing
+
+**Why**: Unit tests and code reviews verify individual units. But real users
+interact through the UI — clicking buttons, filling forms, navigating tabs.
+A manual QA test plan catches integration bugs, UI glitches, and broken flows
+that unit tests cannot reach.
+
+### Step 1: Generate QA Test Plan
+
+After Phase 5's final review, generate a comprehensive QA test plan document
+at `{user_cwd}/qa-test-plan.md`. The plan must cover:
+
+- **Every CRUD operation** for every entity (create, read, update, delete)
+- **Every UI tab/page** with step-by-step interaction sequences
+- **Every form** with valid input, invalid input, and edge cases
+- **Every status transition** and its UI feedback
+- **All error states** — what the user should see for each error
+- **Cross-feature flows** — e.g., create customer → place order → track →
+  deliver → check analytics reflects the order
+- **Destructive actions** — cancel, delete — verify confirmation dialogs
+
+Format each test case as:
+
+```
+### TC-{N}: {Test Case Name}
+**Preconditions**: {setup needed}
+**Steps**:
+1. {action}
+2. {action}
+**Expected**: {what should happen}
+```
+
+### Step 2: E2E Testing via Chrome Extension
+
+If `{chrome_available}` is true and the project has frontend units:
+
+1. Start the application server via Bash (background process)
+2. Use `mcp__claude-in-chrome__tabs_create_mcp` to open a new tab
+3. Navigate to the app URL
+4. Execute each test case from the QA test plan sequentially:
+   - Use `mcp__claude-in-chrome__computer` for clicks, typing, navigation
+   - Use `mcp__claude-in-chrome__read_page` to verify page state
+   - Use `mcp__claude-in-chrome__computer` with `action: "screenshot"` to
+     capture evidence at key checkpoints
+   - Record PASS/FAIL for each test case with evidence
+5. Write results to `{user_cwd}/qa-results.md`
+
+### Step 3: Fix Loop
+
+If any test cases FAIL:
+
+1. Collect all failures into a bug report with: test case ID, steps to
+   reproduce, expected vs actual, screenshot evidence
+2. Dispatch a new TDD agent team (use the existing `{team_name}`) to fix
+   the issues — the bug report becomes the spec-contract for a fix unit
+3. After fixes, **re-run the failing test cases** via Chrome extension
+4. If new failures emerge, repeat the fix loop (max 3 iterations)
+5. After all test cases pass or max iterations reached, log the results
+
+If `{chrome_available}` is false: skip E2E testing, present the QA test plan
+to the user, and suggest they run it manually or with the Chrome extension
+in a future session.
+
 ## Phase 6: Report Generation (Script)
 
 **Why**: The report is the deliverable. But it must not be generated from
@@ -537,3 +606,5 @@ The report is written to `{user_cwd}/tdd-report.md`.
 | `tdd-session.jsonl` | Structured event log | Yes |
 | `spec-contract-*.md` | Per-unit spec contracts (deleted in cleanup) | Yes |
 | `tdd-report.md` | Final session report | No (deliverable) |
+| `qa-test-plan.md` | Manual QA test plan | No (deliverable) |
+| `qa-results.md` | E2E test results (if Chrome available) | No (deliverable) |

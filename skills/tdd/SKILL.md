@@ -285,6 +285,13 @@ the full TDD pipeline (Steps 4a–4g). For vanilla JS frontends (no test
 framework), use the task pipeline (implementer → spec-compliance + code-quality
 review, skip adversarial — same as Step 4h for non-code tasks).
 
+**Default frontend stack**: If the spec includes frontend work but does not
+specify a framework, default to **React + Vite + Tailwind CSS + shadcn/ui**.
+This gives the frontend testable components (vitest + @testing-library/react)
+and a polished UI out of the box. For brownfield projects, detect and use
+whatever framework is already in the codebase. Only use vanilla JS if the spec
+explicitly requests it.
+
 If the spec has no frontend units, Wave 2 is skipped entirely.
 
 For each work unit, execute steps 4a through 4g. Entry mode affects the flow:

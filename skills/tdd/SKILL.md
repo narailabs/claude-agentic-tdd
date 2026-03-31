@@ -120,6 +120,27 @@ to override defaults (e.g., maxRetries, maxParallelPairs from flags).
 
 Verify exit 0 and that the output confirms `stateFile` and `logFile` were created.
 
+### Task List for Progress Tracking
+
+After state initialization, create a task for each work unit using `TaskCreate`.
+This gives the user a visible progress bar throughout execution.
+
+- Set the task subject to the unit name (e.g., `"Menu System"`)
+- Set the description to the unit's specContract summary
+- Mark each task `in_progress` when its pipeline starts (Step 4a)
+- Update the task's `activeForm` at each sub-step transition:
+  - `"Writing tests..."` (Step 4a)
+  - `"RED verification..."` (Step 4b)
+  - `"Writing implementation..."` (Step 4c)
+  - `"GREEN verification..."` (Step 4d)
+  - `"Spec compliance review..."` (Step 4e)
+  - `"Adversarial review..."` (Step 4f)
+  - `"Code quality review..."` (Step 4g)
+- Mark `completed` when all reviews pass
+
+This is critical for user experience — without task updates, the task list vanishes
+during agent team execution and the user has no visibility into progress.
+
 ## Phase 4: Agent Team Orchestration
 
 **Generate a unique team name**: Derive `{team_name}` from the working directory

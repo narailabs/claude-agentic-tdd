@@ -76,23 +76,23 @@ function countTotalRetries(units: WorkUnit[]): number {
 function countAntiCheatViolations(units: WorkUnit[]): number {
   let count = 0;
   for (const u of units) {
-    count += u.redVerification.antiPatterns.length;
-    count += u.greenVerification.skipMarkersFound.length;
-    if (!u.greenVerification.testFilesUnchanged) count++;
+    count += u.redVerification?.antiPatterns?.length ?? 0;
+    count += u.greenVerification?.skipMarkersFound?.length ?? 0;
+    if (u.greenVerification && !u.greenVerification.testFilesUnchanged) count++;
   }
   return count;
 }
 
 function countTotalTests(units: WorkUnit[]): number {
   return units.reduce(
-    (sum, u) => sum + u.redVerification.failureCount,
+    (sum, u) => sum + (u.redVerification?.failureCount ?? 0),
     0,
   );
 }
 
 function countTotalAssertions(units: WorkUnit[]): number {
   return units.reduce(
-    (sum, u) => sum + u.redVerification.assertionCount,
+    (sum, u) => sum + (u.redVerification?.assertionCount ?? 0),
     0,
   );
 }
@@ -116,28 +116,28 @@ function buildUnitSection(unit: WorkUnit): string {
       `| Test Writer | ${unit.testWriterAttempts > 0 ? "done" : "pending"} | ${unit.testWriterAttempts} | |`,
     );
     lines.push(
-      `| RED Verification | ${unit.redVerification.status} | -- | ${unit.redVerification.failureCount} failures, ${unit.redVerification.assertionCount} assertions |`,
+      `| RED Verification | ${unit.redVerification?.status ?? "pending"} | -- | ${unit.redVerification?.failureCount ?? 0} failures, ${unit.redVerification?.assertionCount ?? 0} assertions |`,
     );
     lines.push(
       `| Code Writer | ${unit.codeWriterAttempts > 0 ? "done" : "pending"} | ${unit.codeWriterAttempts} | |`,
     );
     lines.push(
-      `| GREEN Verification | ${unit.greenVerification.status} | -- | ${unit.greenVerification.testsPassed ? "pass" : "fail"} |`,
+      `| GREEN Verification | ${unit.greenVerification?.status ?? "pending"} | -- | ${unit.greenVerification?.testsPassed ? "pass" : "fail"} |`,
     );
   }
 
   lines.push(
-    `| Spec Compliance | ${unit.specCompliance.status} | -- | ${unit.specCompliance.requirementsCovered}/${unit.specCompliance.requirementsTotal} requirements covered |`,
+    `| Spec Compliance | ${unit.specCompliance?.status ?? "pending"} | -- | ${unit.specCompliance?.requirementsCovered ?? 0}/${unit.specCompliance?.requirementsTotal ?? 0} requirements covered |`,
   );
 
   if (unit.unitType === UnitType.CODE) {
     lines.push(
-      `| Adversarial Review | ${unit.adversarial.status} | -- | ${unit.adversarial.status === "passed" ? "pass" : "fail"} |`,
+      `| Adversarial Review | ${unit.adversarial?.status ?? "pending"} | -- | ${unit.adversarial?.status === "passed" ? "pass" : "fail"} |`,
     );
   }
 
   lines.push(
-    `| Code Quality | ${unit.codeQuality.status} | -- | ${unit.codeQuality.issues.length} issues |`,
+    `| Code Quality | ${unit.codeQuality?.status ?? "pending"} | -- | ${unit.codeQuality?.issues?.length ?? 0} issues |`,
   );
 
   lines.push("");
@@ -152,15 +152,15 @@ function buildUnitSection(unit: WorkUnit): string {
 
   // Reviewer findings
   const findings: string[] = [];
-  if (unit.adversarial.findings.length > 0) {
-    findings.push(...unit.adversarial.findings);
+  if ((unit.adversarial?.findings?.length ?? 0) > 0) {
+    findings.push(...unit.adversarial!.findings);
   }
-  if (unit.codeQuality.issues.length > 0) {
-    findings.push(...unit.codeQuality.issues);
+  if ((unit.codeQuality?.issues?.length ?? 0) > 0) {
+    findings.push(...unit.codeQuality!.issues);
   }
-  if (unit.specCompliance.missingRequirements.length > 0) {
+  if ((unit.specCompliance?.missingRequirements?.length ?? 0) > 0) {
     findings.push(
-      ...unit.specCompliance.missingRequirements.map((r) => `Missing: ${r}`),
+      ...unit.specCompliance!.missingRequirements.map((r) => `Missing: ${r}`),
     );
   }
 
@@ -184,13 +184,13 @@ function buildAntiCheatLog(units: WorkUnit[]): string {
   const rows: string[] = [];
 
   for (const u of units) {
-    for (const ap of u.redVerification.antiPatterns) {
+    for (const ap of u.redVerification?.antiPatterns ?? []) {
       rows.push(`| ${u.id} | RED Verification | ${ap} | re-prompted |`);
     }
-    for (const sm of u.greenVerification.skipMarkersFound) {
+    for (const sm of u.greenVerification?.skipMarkersFound ?? []) {
       rows.push(`| ${u.id} | GREEN Verification | Skip marker: ${sm} | re-prompted |`);
     }
-    if (!u.greenVerification.testFilesUnchanged) {
+    if (u.greenVerification && !u.greenVerification.testFilesUnchanged) {
       rows.push(
         `| ${u.id} | GREEN Verification | Test files modified: ${u.greenVerification.changedFiles.join(", ")} | re-prompted |`,
       );
@@ -217,21 +217,17 @@ function buildSpecGaps(units: WorkUnit[]): string {
   let gapNum = 1;
 
   for (const u of units) {
-    if (u.specCompliance.scopeCreep.length > 0) {
-      for (const sc of u.specCompliance.scopeCreep) {
-        gaps.push(
-          `| ${gapNum} | ${sc} | Spec Review / ${u.id} | Flagged as scope creep | Review spec for completeness |`,
-        );
-        gapNum++;
-      }
+    for (const sc of u.specCompliance?.scopeCreep ?? []) {
+      gaps.push(
+        `| ${gapNum} | ${sc} | Spec Review / ${u.id} | Flagged as scope creep | Review spec for completeness |`,
+      );
+      gapNum++;
     }
-    if (u.specCompliance.missingRequirements.length > 0) {
-      for (const mr of u.specCompliance.missingRequirements) {
-        gaps.push(
-          `| ${gapNum} | ${mr} | Spec Review / ${u.id} | Not covered | Add to specification |`,
-        );
-        gapNum++;
-      }
+    for (const mr of u.specCompliance?.missingRequirements ?? []) {
+      gaps.push(
+        `| ${gapNum} | ${mr} | Spec Review / ${u.id} | Not covered | Add to specification |`,
+      );
+      gapNum++;
     }
   }
 
@@ -259,7 +255,7 @@ export function generateReport(
   ).length;
   const totalCount = state.workUnits.length;
   const adversarialPassed = state.workUnits.filter(
-    (u) => u.adversarial.status === "passed",
+    (u) => u.adversarial?.status === "passed",
   ).length;
   const adversarialTotal = state.workUnits.filter(
     (u) => u.unitType === UnitType.CODE,

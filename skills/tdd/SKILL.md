@@ -59,7 +59,7 @@ Parse `$ARGUMENTS` for:
 - `--skip-failed`: skip units that fail after max retries instead of escalating
 - `--design`: force Phase 0 design gate even for simple specs
 - `--skip-design`: skip Phase 0 entirely
-- `--effort <level>`: reasoning effort (`low`, `medium`, `high`, `max`)
+- `--effort <level>`: reasoning effort (`low`, `medium`, `high` (default), `max`)
 - `--parallel <N>`: max concurrent unit pipelines (default 4)
 - `--model-strategy <s>`: `auto`, `standard`, `capable`
 - `--resume`: resume from existing `.tdd-state.json`

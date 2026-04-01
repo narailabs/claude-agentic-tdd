@@ -1,4 +1,6 @@
 #!/usr/bin/env npx tsx
+import * as fs from "node:fs";
+import * as path from "node:path";
 import { parseArgs } from "node:util";
 import { StateManager } from "../../../src/state.js";
 import { Verifier } from "../../../src/verification.js";
@@ -81,6 +83,20 @@ for (const unit of state.workUnits) {
         `Unit "${unit.id}": marked COMPLETED but GREEN verification is still pending`,
       );
     }
+  }
+}
+
+// Check 4: If any unit has wave "frontend" or "fullstack", qa-test-plan.md must exist
+const hasFrontend = state.workUnits.some(
+  (u) => (u as { wave?: string }).wave === "frontend" || (u as { wave?: string }).wave === "fullstack",
+);
+
+if (hasFrontend) {
+  const qaPlanPath = path.resolve(workingDir, "qa-test-plan.md");
+  if (!fs.existsSync(qaPlanPath)) {
+    violations.push(
+      "Project has frontend units but qa-test-plan.md is missing — Phase 5b was skipped",
+    );
   }
 }
 

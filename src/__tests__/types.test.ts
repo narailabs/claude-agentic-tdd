@@ -26,7 +26,7 @@ describe("createDefaultConfig", () => {
     expect(cfg.maxParallelPairs).toBe(4);
     expect(cfg.skipFailed).toBe(false);
     expect(cfg.modelStrategy).toBe("auto");
-    expect(cfg.effort).toBe("medium");
+    expect(cfg.effort).toBe("high");
     expect(cfg.forceDesign).toBe(false);
     expect(cfg.skipDesign).toBe(false);
   });
@@ -94,9 +94,10 @@ describe("createWorkUnit", () => {
     expect(wu.specContract).toBe("Login with email/password");
   });
 
-  it("uses default unitType, dependsOn, and complexity when no options", () => {
+  it("uses default unitType, wave, dependsOn, and complexity when no options", () => {
     const wu = createWorkUnit("wu-1", "N", "S");
     expect(wu.unitType).toBe(UnitType.CODE);
+    expect(wu.wave).toBe("backend");
     expect(wu.dependsOn).toEqual([]);
     expect(wu.complexity).toBe(Complexity.STANDARD);
   });
@@ -104,10 +105,12 @@ describe("createWorkUnit", () => {
   it("respects optional overrides", () => {
     const wu = createWorkUnit("wu-2", "N", "S", {
       unitType: UnitType.TASK,
+      wave: "frontend",
       dependsOn: ["wu-1"],
       complexity: Complexity.ARCHITECTURE,
     });
     expect(wu.unitType).toBe(UnitType.TASK);
+    expect(wu.wave).toBe("frontend");
     expect(wu.dependsOn).toEqual(["wu-1"]);
     expect(wu.complexity).toBe(Complexity.ARCHITECTURE);
   });

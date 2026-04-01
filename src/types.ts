@@ -108,6 +108,7 @@ export interface WorkUnit {
   id: string;
   name: string;
   unitType: UnitType;
+  wave: "backend" | "frontend" | "fullstack";
   specContract: string;
   dependsOn: string[];
   complexity: Complexity;
@@ -161,7 +162,7 @@ export function createDefaultConfig(): TDDConfig {
     maxParallelPairs: 4,
     skipFailed: false,
     modelStrategy: "auto",
-    effort: "medium",
+    effort: "high",
     forceDesign: false,
     skipDesign: false,
   };
@@ -239,6 +240,7 @@ export function createWorkUnit(
   specContract: string,
   options?: {
     unitType?: UnitType;
+    wave?: "backend" | "frontend" | "fullstack";
     dependsOn?: string[];
     complexity?: Complexity;
   },
@@ -247,6 +249,7 @@ export function createWorkUnit(
     id,
     name,
     unitType: options?.unitType ?? UnitType.CODE,
+    wave: options?.wave ?? "backend",
     specContract,
     dependsOn: options?.dependsOn ?? [],
     complexity: options?.complexity ?? Complexity.STANDARD,

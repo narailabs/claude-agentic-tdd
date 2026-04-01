@@ -412,6 +412,7 @@ export class Verifier {
     testFiles: string[],
     testCommand: string,
     storedChecksums: Record<string, string>,
+    language?: string,
   ): GreenVerification {
     // Check 1: Test file checksums unchanged
     const checksumResult = this.verifyChecksumsUnchanged(
@@ -429,6 +430,25 @@ export class Verifier {
     // Check 3: Run tests — verify pass
     const testResult = this.runTests(testCommand, testFiles);
 
+    // Check 4: TypeScript compilation (non-blocking)
+    let tscCheck: { clean: boolean; errors: string } | null = null;
+    const lang = language ? normalizeLanguage(language) : null;
+    if (lang === "typescript") {
+      try {
+        execSync("npx tsc --noEmit", {
+          cwd: this.workingDir,
+          timeout: 30_000,
+          stdio: ["pipe", "pipe", "pipe"],
+          encoding: "utf-8",
+        });
+        tscCheck = { clean: true, errors: "" };
+      } catch (error: unknown) {
+        const execError = error as { stdout?: string; stderr?: string };
+        const output = (execError.stdout ?? "") + (execError.stderr ?? "");
+        tscCheck = { clean: false, errors: output };
+      }
+    }
+
     return {
       status:
         checksumResult.allMatch &&
@@ -442,6 +462,7 @@ export class Verifier {
       testsPassed: testResult.exitCode === 0,
       testOutput: testResult.output,
       exitCode: testResult.exitCode,
+      tscCheck,
     };
   }
 

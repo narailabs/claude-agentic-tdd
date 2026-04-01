@@ -116,6 +116,11 @@ Roll back each interrupted unit to its **last script-verified checkpoint**:
 | `ADVERSARIAL_REVIEW` | Step 4f |
 | `CODE_QUALITY_REVIEW` | Step 4g |
 
+For fullstack units, check which pass was in progress (backend or frontend)
+based on which files have been created. If backend files exist but frontend
+files don't, resume from the frontend pass (mid-unit synthesis + Step 4a for
+frontend). If neither exists, restart from the backend pass.
+
 For units resuming from RED, read stored `testFileChecksums` from the state.
 
 ### Step R4: Skip to Phase 4
@@ -167,25 +172,37 @@ focused, independently verifiable units.
    - `name`: human-readable name
    - `specContract`: detailed behavioral contract for this unit
    - `unitType`: `"code"` or `"task"` (non-code work like configs, migrations)
-   - `wave`: `"backend"` or `"frontend"` (see classification below)
+   - `wave`: `"backend"`, `"frontend"`, or `"fullstack"` (see classification below)
    - `dependsOn`: list of unit IDs this depends on
    - `testFiles`: paths for test files to create
    - `implFiles`: paths for implementation files to create
    - `complexity`: `"mechanical"`, `"standard"`, or `"architecture"`
 
-### Backend vs Frontend Classification
+### Backend / Frontend / Fullstack Classification
 
 After producing the unit list, classify each unit:
 
+- **Backend**: API routes, business logic, data models, server config,
+  migrations, non-code tasks — anything without UI.
 - **Frontend**: Unit's files target typical frontend paths (`src/public/`,
   `src/components/`, `pages/`, `app/`, `*.html`, `*.css`, `*.jsx`, `*.tsx`,
   `*.vue`, `*.svelte`) OR its spec-contract describes UI rendering, user
-  interaction, or visual output.
-- **Backend**: Everything else — API routes, business logic, data models,
-  server config, migrations, non-code tasks.
+  interaction, or visual output — with NO backend dependencies within the
+  same unit.
+- **Fullstack**: The unit has BOTH backend files (API routes, data layer)
+  AND frontend files (components, pages) that belong together as one
+  cohesive feature. Use this when splitting into separate backend +
+  frontend units would be artificial — e.g., a "user profile" feature
+  with an API endpoint and a React component, or a "search" feature
+  with a query endpoint and a search results page.
 
-Tag each unit with `wave: "backend"` or `wave: "frontend"`. Present them
-grouped by wave in the work plan so the user sees the execution order.
+Tag each unit with `wave: "backend"`, `wave: "frontend"`, or
+`wave: "fullstack"`. For fullstack units, separate the file lists:
+- `backendTestFiles` / `backendImplFiles`: API routes, models, etc.
+- `frontendTestFiles` / `frontendImplFiles`: components, pages, etc.
+
+Present units grouped by wave in the work plan so the user sees the
+execution order.
 
 ### Enriched Sub-Specs
 
@@ -199,8 +216,11 @@ instead of basic spec-contracts. For 1-2 simple units, use basic contracts.
 - Edge cases explicitly called out
 - Interface contracts with other units (what this unit consumes from dependencies)
 
-Frontend sub-specs are NOT generated here — they are synthesized later, between
-the backend and frontend waves, using the actual implemented API (see Phase 4).
+Frontend sub-specs for `wave: "frontend"` units are NOT generated here — they
+are synthesized later, between the backend and frontend waves, using the actual
+implemented API (see Phase 4). For `wave: "fullstack"` units, the frontend
+sub-spec is synthesized mid-unit after the backend pass completes (see
+Fullstack Unit Pipeline in Phase 4).
 
 ### Frontend Technology Selection
 
@@ -287,17 +307,21 @@ user can provide.
 
 ### Two-Wave Execution: Backend First, Then Frontend
 
-Execute work units in two waves. **No mixing** — all backend units must reach
-COMPLETED (or FAILED with `--skip-failed`) before any frontend unit starts.
+Execute work units in two waves. **No mixing** — all backend and fullstack
+units must reach COMPLETED (or FAILED with `--skip-failed`) before any
+pure-frontend unit starts.
 
-**Wave 1 — Backend**: Dispatch all `wave: "backend"` units, respecting
-`dependsOn` order, up to `--parallel` concurrent pipelines. Each unit follows
-the full pipeline (Steps 4a–4g). Wait for all backend units to finish.
+**Wave 1 — Backend + Fullstack**: Dispatch all `wave: "backend"` and
+`wave: "fullstack"` units, respecting `dependsOn` order, up to `--parallel`
+concurrent pipelines. Backend units follow the standard pipeline (Steps
+4a–4g). Fullstack units follow the **Fullstack Unit Pipeline** below.
+Wait for all Wave 1 units to finish.
 
-**Between waves — Frontend Sub-Spec Synthesis**: After all backend units
-complete, before dispatching frontend units:
+**Between waves — Frontend Sub-Spec Synthesis**: After all Wave 1 units
+complete, before dispatching pure-frontend units:
 
 1. Use the Read tool to read the implemented backend route files from disk
+   (including backend files from fullstack units)
 2. Extract: endpoint paths, HTTP methods, request body shapes, response shapes,
    error response formats
 3. Read the original spec's frontend section
@@ -318,7 +342,50 @@ the full TDD pipeline (Steps 4a–4g). For vanilla JS frontends (no test
 framework), use the task pipeline (implementer → spec-compliance + code-quality
 review, skip adversarial — same as Step 4h for non-code tasks).
 
-If the spec has no frontend units, Wave 2 is skipped entirely.
+If the spec has no pure-frontend units, Wave 2 is skipped entirely.
+
+### Fullstack Unit Pipeline
+
+**Why**: Some features are a cohesive backend+frontend pair (e.g., "user
+profile" with an API endpoint and a React component). Splitting these into
+separate units across waves is artificial and loses context. Fullstack units
+keep the feature together while still enforcing backend-before-frontend order.
+
+For units with `wave: "fullstack"`, run TWO TDD passes within the same unit:
+
+**Pass 1 — Backend** (uses `backendTestFiles` / `backendImplFiles`):
+1. Step 4a: Test Writer — writes tests for backend files only
+2. Step 4b: RED verification — on backend test files
+3. Step 4c: Code Writer — implements backend files only
+4. Step 4d: GREEN verification — on backend test files
+
+**Mid-unit Frontend Sub-Spec Synthesis**:
+After the backend pass completes (GREEN verified), before starting the
+frontend pass:
+1. Read the just-implemented backend files from disk
+2. Extract the actual API surface (endpoints, request/response shapes, errors)
+3. Synthesize a frontend sub-spec that includes the real API details
+4. Update the unit's spec-contract with the frontend sub-spec
+
+This is the same synthesis that happens between waves for pure-frontend
+units — but here it happens mid-unit, informed by the backend code that
+was just written within this same unit.
+
+**Pass 2 — Frontend** (uses `frontendTestFiles` / `frontendImplFiles`):
+1. Step 4a: Test Writer — writes tests for frontend files, using the
+   enriched sub-spec with real API details
+2. Step 4b: RED verification — on frontend test files
+3. Step 4c: Code Writer — implements frontend files
+4. Step 4d: GREEN verification — on frontend test files
+
+**Combined Reviews** (run once on ALL files — backend + frontend together):
+1. Step 4e: Spec compliance review — checks the full feature
+2. Step 4f: Adversarial review — checks the full feature
+3. Step 4g: Code quality review — checks the full feature
+
+State updates: call `update-state.ts` after each verification (backend RED,
+backend GREEN, frontend RED, frontend GREEN) so the resume flow knows
+exactly where to restart if interrupted.
 
 **After Wave 2 — Frontend Integration Check**: Once all frontend units are
 COMPLETED, verify the app actually works end-to-end:
@@ -356,7 +423,12 @@ For each work unit, execute steps 4a through 4g. Entry mode affects the flow:
    Give it tools: Read, Write, Glob, Grep, Bash. Send the filled prompt.
 5. Wait for completion. If the agent responds with NEEDS_CLARIFICATION:
    resolve the ambiguity using the spec/design summary, then re-dispatch.
-6. Verify test files and `spec-contract-{unit.id}.md` exist on disk
+6. **Verify deliverables exist on disk** (both must exist before proceeding):
+```bash
+test -f {user_cwd}/{test_file_path} && test -f {user_cwd}/spec-contract-{unit_id}.md \
+  && echo '{"filesExist":true}' || echo '{"filesExist":false,"error":"MISSING"}'
+```
+   If either file is missing, re-prompt the Test Writer. Do not proceed to RED.
 7. Log the event:
 ```bash
 cd {plugin_root} && npx tsx skills/tdd/scripts/log-event.ts \
@@ -384,7 +456,8 @@ cd {plugin_root} && npx tsx skills/tdd/scripts/verify-red.ts \
 - **Exit 1**: Read the failure reason from JSON. Re-prompt the Test Writer with
   the error. Retry up to maxRetries (3).
 
-Update state after each attempt:
+**CHECKPOINT — update state immediately** (check-state.ts will block report
+generation if this is missing):
 ```bash
 cd {plugin_root} && npx tsx skills/tdd/scripts/update-state.ts \
   --working-dir {user_cwd} --unit-id "{id}" --status "RED_VERIFICATION" \
@@ -419,10 +492,12 @@ cd {plugin_root} && npx tsx skills/tdd/scripts/verify-green.ts \
   --working-dir {user_cwd} \
   --test-files "{comma_separated_files}" \
   --test-command "{cmd}" \
-  --checksums-json '{stored_checksums_from_red}'
+  --checksums-json '{stored_checksums_from_red}' \
+  --language "{lang}"
 ```
 
-- **Exit 0**: Tests pass and test file checksums match RED checksums. Proceed.
+- **Exit 0**: Tests pass and test file checksums match RED checksums.
+  Check `tscCheck` in the JSON output (see Step 4d2). Proceed.
 - **Exit 1, `testFilesUnchanged: false`**: Anti-cheat violation. The Code Writer
   modified test files. The checksum proof is in the conversation and cannot be
   disputed. Re-prompt the Code Writer: restore original test files and fix the
@@ -432,33 +507,34 @@ cd {plugin_root} && npx tsx skills/tdd/scripts/verify-green.ts \
 - **Exit 1, `skipMarkersFound` non-empty**: Code Writer added skip/ignore
   markers. Anti-cheat violation. Re-prompt to remove them.
 
-Update state after each attempt:
+**CHECKPOINT — update state immediately** (check-state.ts will block report
+generation if this is missing):
 ```bash
 cd {plugin_root} && npx tsx skills/tdd/scripts/update-state.ts \
   --working-dir {user_cwd} --unit-id "{id}" --status "GREEN_VERIFICATION" \
   --green-json '{...}'
 ```
 
-### Step 4d2: TypeScript Compilation Check
+### Step 4d2: TypeScript Compilation Check (Automatic)
 
 **Why**: Tests can pass while the project has type errors — vitest bundles
 its own types and ignores tsconfig gaps. A project that tests-pass but
 fails `tsc --noEmit` has latent bugs (wrong types, missing imports, type
-mismatches). This gate catches them before reviews.
+mismatches).
 
-After GREEN passes, run (for TypeScript projects only):
-```bash
-cd {user_cwd} && npx tsc --noEmit 2>&1
-```
-
-- **Exit 0**: Compilation clean. Proceed to reviews.
-- **Non-zero**: Read the errors. Common fixes:
+**This check is now built into `verify-green.ts`** when you pass
+`--language typescript`. The output JSON includes a `tscCheck` field:
+- `tscCheck.clean: true` — no errors, proceed to reviews.
+- `tscCheck.clean: false` — read `tscCheck.errors`. Common fixes:
   - Missing vitest types: add `"types": ["vitest/globals"]` to tsconfig
   - Express `req.params` type: cast with `as string`
   - Missing module declarations: add `.d.ts` files
   Re-prompt the Code Writer with the compilation errors. Retry up to 2
   times. If still failing after fixes, log the errors and proceed to
   reviews (compilation issues are flagged in the report but don't block).
+
+You do NOT need to run `tsc --noEmit` separately — just pass `--language`
+to verify-green.ts and check the `tscCheck` field in the response.
 
 ### Step 4e: Spec Compliance Review
 
@@ -651,10 +727,18 @@ The report is written to `{user_cwd}/tdd-report.md`.
 
 ## Phase 7: Cleanup
 
-1. Use `TeamDelete` to shut down the `{team_name}` team and all teammates
-2. Delete spec-contract files: `rm -f {user_cwd}/spec-contract-*.md`
-3. Present the report summary to the user
-4. Suggest next steps: commit the code, run the full test suite manually,
+1. **Graceful teammate shutdown**: Send a shutdown request to every teammate
+   via `SendMessage` with `message: {type: "shutdown_request"}`. Wait for
+   shutdown confirmations (delivered as teammate messages).
+2. **TeamDelete with retry**: Call `TeamDelete`. If it fails with
+   "active member(s)", wait 10 seconds and retry (up to 3 attempts).
+   If it still fails after retries, force cleanup:
+   ```bash
+   rm -rf ~/.claude/teams/{team_name} ~/.claude/tasks/{team_name}
+   ```
+3. Delete spec-contract files: `rm -f {user_cwd}/spec-contract-*.md`
+4. Present the report summary to the user
+5. Suggest next steps: commit the code, run the full test suite manually,
    review the report, etc.
 
 ## Red Flags — Never Do These

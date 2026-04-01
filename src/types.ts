@@ -79,6 +79,7 @@ export interface GreenVerification {
   skipMarkersFound: string[];
   testOutput: string;
   exitCode: number;
+  tscCheck?: { clean: boolean; errors: string } | null;
 }
 
 export interface SpecComplianceResult {

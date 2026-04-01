@@ -8,6 +8,7 @@ const { values } = parseArgs({
     "test-files": { type: "string" },
     "test-command": { type: "string" },
     "checksums-json": { type: "string" },
+    "language": { type: "string" },
   },
   strict: true,
 });
@@ -16,6 +17,7 @@ const workingDir = values["working-dir"];
 const testFilesRaw = values["test-files"];
 const testCommand = values["test-command"];
 const checksumsRaw = values["checksums-json"];
+const language = values["language"];
 
 if (!workingDir || !testFilesRaw || !testCommand || !checksumsRaw) {
   console.log(
@@ -37,7 +39,7 @@ try {
 }
 
 const verifier = new Verifier(workingDir);
-const result = verifier.greenVerification(testFiles, testCommand, storedChecksums);
+const result = verifier.greenVerification(testFiles, testCommand, storedChecksums, language);
 
 console.log(JSON.stringify(result));
 

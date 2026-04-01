@@ -196,6 +196,23 @@ instead of basic spec-contracts. For 1-2 simple units, use basic contracts.
 Frontend sub-specs are NOT generated here — they are synthesized later, between
 the backend and frontend waves, using the actual implemented API (see Phase 4).
 
+### Frontend Technology Selection
+
+**IMPORTANT**: When creating frontend work units, determine the framework:
+
+- **Brownfield**: Detect and use whatever framework exists in the codebase
+- **Spec specifies a framework**: Use what the spec says
+- **Spec says "vanilla JS" or "no frameworks"**: Use vanilla HTML/CSS/JS
+- **Spec does NOT specify a framework** (the default case): Use **React +
+  Vite + Tailwind CSS + shadcn/ui**. Set up the project with `npm create
+  vite@latest` (React + TypeScript), install Tailwind and shadcn/ui. This
+  gives testable components (vitest + @testing-library/react) and a polished
+  UI. Frontend unit file paths should use React conventions (`src/components/`,
+  `src/pages/`, `*.tsx`), NOT vanilla paths (`public/index.html`, `app.js`).
+
+This decision MUST happen here in Phase 2 — do not defer it. The frontend
+unit file paths in the work plan must reflect the chosen framework.
+
 4. Present the work plan to the user and wait for confirmation
 
 ## Phase 3: State Initialization (Script)

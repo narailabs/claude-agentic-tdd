@@ -676,17 +676,33 @@ If `{chrome_available}` is true and the project has frontend units:
    - Record PASS/FAIL for each test case with evidence
 5. Write results to `{user_cwd}/qa-results.md`
 
-### Step 3: Fix Loop
+### Step 3: Fix Loop (Mandatory)
+
+**E2E bugs must be fixed before proceeding.** Do not defer them. Do not log
+them and move on. A broken frontend with passing unit tests is a failed
+delivery — the pizza-sdk-max eval proved that 483 unit tests missed a P0
+crash that E2E caught in seconds.
 
 If any test cases FAIL:
 
-1. Collect all failures into a bug report with: test case ID, steps to
-   reproduce, expected vs actual, screenshot evidence
-2. Dispatch a new TDD agent team (use the existing `{team_name}`) to fix
-   the issues — the bug report becomes the spec-contract for a fix unit
-3. After fixes, **re-run the failing test cases** via Chrome extension
-4. If new failures emerge, repeat the fix loop (max 3 iterations)
-5. After all test cases pass or max iterations reached, log the results
+1. **Triage**: Collect all failures into a bug report with: test case ID,
+   steps to reproduce, expected vs actual, screenshot evidence. Classify
+   each as data-contract mismatch (frontend expects different shape than
+   API returns), missing wiring (component not connected), logic error,
+   or styling/display issue.
+2. **Fix via TDD**: For each bug (or group of related bugs):
+   a. Write a failing test that reproduces the bug (if no test covers it)
+   b. Run verify-red.ts to confirm the test fails
+   c. Dispatch a Code Writer teammate to fix the implementation
+   d. Run verify-green.ts to confirm the fix + no regressions
+   e. Update state via update-state.ts
+3. **Re-test via Chrome**: After all fixes, re-run the FAILING test cases
+   via Chrome extension. Verify each now passes.
+4. **Regression check**: Also re-run 2-3 previously passing test cases to
+   ensure fixes didn't break anything else.
+5. If new failures emerge, repeat (max 3 iterations).
+6. After all test cases pass or max iterations reached, update
+   `qa-results.md` with final results.
 
 If `{chrome_available}` is false: skip E2E testing, present the QA test plan
 to the user, and suggest they run it manually or with the Chrome extension

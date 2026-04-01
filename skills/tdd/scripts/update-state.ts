@@ -108,12 +108,38 @@ if (values["impl-files"] !== undefined) {
 
 mgr.save(state);
 
-console.log(
-  JSON.stringify({
-    updated: true,
-    unitId: unit.id,
-    status: unit.status,
-    updatedAt: state.updatedAt,
-  }),
+// Compute session-wide progress for context-independent guidance
+const totalUnits = state.workUnits.length;
+const completedUnits = state.workUnits.filter(
+  (u) => u.status === UnitStatus.COMPLETED,
+).length;
+const failedUnits = state.workUnits.filter(
+  (u) => u.status === UnitStatus.FAILED,
+).length;
+const allDone = completedUnits + failedUnits === totalUnits;
+const hasFrontend = state.workUnits.some(
+  (u) => (u as { wave?: string }).wave === "frontend" || (u as { wave?: string }).wave === "fullstack",
 );
+
+const output: Record<string, unknown> = {
+  updated: true,
+  unitId: unit.id,
+  status: unit.status,
+  updatedAt: state.updatedAt,
+  progress: `${completedUnits}/${totalUnits} completed${failedUnits > 0 ? `, ${failedUnits} failed` : ""}`,
+};
+
+// When all units are done, emit next-phase guidance so the model knows
+// what to do even if the original SKILL.md instructions were compacted
+if (allDone) {
+  if (hasFrontend) {
+    output.allUnitsComplete = true;
+    output.nextPhase = "Phase 5: Run full test suite, then Phase 5b: Generate qa-test-plan.md AND run E2E tests via Chrome (MANDATORY for frontend projects). Fix any bugs found before proceeding to Phase 6.";
+  } else {
+    output.allUnitsComplete = true;
+    output.nextPhase = "Phase 5: Run full test suite and holistic spec review, then Phase 6: check-state.ts followed by generate-report.ts.";
+  }
+}
+
+console.log(JSON.stringify(output));
 process.exit(0);

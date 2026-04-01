@@ -25,6 +25,10 @@ const { values } = parseArgs({
     "design-summary": { type: "string" },
     "work-units-json": { type: "string" },
     "config-json": { type: "string" },
+    effort: { type: "string" },
+    "model-strategy": { type: "string" },
+    parallel: { type: "string" },
+    "skip-failed": { type: "boolean", default: false },
     force: { type: "boolean", default: false },
   },
   strict: true,
@@ -54,11 +58,25 @@ if (sm.stateFileExists() && !values.force) {
   process.exit(1);
 }
 
-// Build config with optional overrides
+// Build config: start with defaults, apply --config-json, then direct flags
+// Direct flags (--effort, --model-strategy, etc.) override --config-json
 let config: TDDConfig = createDefaultConfig();
 if (values["config-json"]) {
   const overrides = JSON.parse(values["config-json"]) as Partial<TDDConfig>;
   config = { ...config, ...overrides };
+}
+// Direct CLI flags take highest priority
+if (values.effort) {
+  config.effort = values.effort as TDDConfig["effort"];
+}
+if (values["model-strategy"]) {
+  config.modelStrategy = values["model-strategy"] as TDDConfig["modelStrategy"];
+}
+if (values.parallel) {
+  config.maxParallelPairs = parseInt(values.parallel, 10);
+}
+if (values["skip-failed"]) {
+  config.skipFailed = true;
 }
 
 // Create default state
@@ -155,6 +173,12 @@ console.log(
     logFile: log.logFilePath,
     unitCount: unitDefs.length,
     sessionId: state.sessionId,
+    config: {
+      effort: config.effort,
+      modelStrategy: config.modelStrategy,
+      maxParallelPairs: config.maxParallelPairs,
+      skipFailed: config.skipFailed,
+    },
   }),
 );
 process.exit(0);

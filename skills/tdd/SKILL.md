@@ -198,20 +198,24 @@ the backend and frontend waves, using the actual implemented API (see Phase 4).
 
 ### Frontend Technology Selection
 
-**IMPORTANT**: When creating frontend work units, determine the framework:
+**NON-NEGOTIABLE**: Before creating frontend work units, determine the stack.
+This decision happens HERE — not later. File paths in the work plan MUST
+reflect the chosen framework. Getting this wrong wastes an entire wave.
 
-- **Brownfield**: Detect and use whatever framework exists in the codebase
-- **Spec specifies a framework**: Use what the spec says
-- **Spec says "vanilla JS" or "no frameworks"**: Use vanilla HTML/CSS/JS
-- **Spec does NOT specify a framework** (the default case): Use **React +
-  Vite + Tailwind CSS + shadcn/ui**. Set up the project with `npm create
-  vite@latest` (React + TypeScript), install Tailwind and shadcn/ui. This
-  gives testable components (vitest + @testing-library/react) and a polished
-  UI. Frontend unit file paths should use React conventions (`src/components/`,
-  `src/pages/`, `*.tsx`), NOT vanilla paths (`public/index.html`, `app.js`).
+| Condition | Stack to use |
+|---|---|
+| Existing project has a framework (brownfield) | Use what's already there |
+| Spec explicitly names a framework | Use what the spec says |
+| Spec explicitly says "vanilla JS" or "no frameworks" | Vanilla HTML/CSS/JS |
+| **Spec does NOT mention a frontend framework** | **React + Vite + Tailwind CSS + shadcn/ui** |
 
-This decision MUST happen here in Phase 2 — do not defer it. The frontend
-unit file paths in the work plan must reflect the chosen framework.
+For the default React stack:
+- First frontend unit must set up the project: `npm create vite@latest`
+  (React + TypeScript template), install `tailwindcss`, `@tailwindcss/vite`,
+  `shadcn/ui` dependencies, and `@testing-library/react` for tests
+- All frontend file paths use `src/components/*.tsx`, NOT `public/app.js`
+- The main entry (`App.tsx`) must import and render ALL tab/page components
+- Do NOT fall back to vanilla JS unless the spec explicitly requests it
 
 4. Present the work plan to the user and wait for confirmation
 
@@ -308,14 +312,22 @@ the full TDD pipeline (Steps 4a–4g). For vanilla JS frontends (no test
 framework), use the task pipeline (implementer → spec-compliance + code-quality
 review, skip adversarial — same as Step 4h for non-code tasks).
 
-**Default frontend stack**: If the spec includes frontend work but does not
-specify a framework, default to **React + Vite + Tailwind CSS + shadcn/ui**.
-This gives the frontend testable components (vitest + @testing-library/react)
-and a polished UI out of the box. For brownfield projects, detect and use
-whatever framework is already in the codebase. Only use vanilla JS if the spec
-explicitly requests it.
-
 If the spec has no frontend units, Wave 2 is skipped entirely.
+
+**After Wave 2 — Frontend Integration Check**: Once all frontend units are
+COMPLETED, verify the app actually works end-to-end:
+
+1. **Entry point wiring**: Read the main app entry file (e.g., `App.tsx`,
+   `main.tsx`, `index.html`). Verify it imports and renders ALL frontend
+   components/tabs that were built. If components exist but aren't wired
+   into the app shell, dispatch a fix agent to wire them up.
+2. **Smoke test**: Start the server via Bash (background), wait 3 seconds,
+   then `curl http://localhost:{port}`. Verify HTTP 200 and the response
+   contains expected content (e.g., the app title or root div). Kill the
+   server after the check.
+3. **Compilation**: Run `npx tsc --noEmit` on the full project. If errors
+   exist, dispatch a fix agent.
+4. If any check fails, fix and re-check (max 2 iterations).
 
 For each work unit, execute steps 4a through 4g. Entry mode affects the flow:
 
@@ -421,6 +433,27 @@ cd {plugin_root} && npx tsx skills/tdd/scripts/update-state.ts \
   --green-json '{...}'
 ```
 
+### Step 4d2: TypeScript Compilation Check
+
+**Why**: Tests can pass while the project has type errors — vitest bundles
+its own types and ignores tsconfig gaps. A project that tests-pass but
+fails `tsc --noEmit` has latent bugs (wrong types, missing imports, type
+mismatches). This gate catches them before reviews.
+
+After GREEN passes, run (for TypeScript projects only):
+```bash
+cd {user_cwd} && npx tsc --noEmit 2>&1
+```
+
+- **Exit 0**: Compilation clean. Proceed to reviews.
+- **Non-zero**: Read the errors. Common fixes:
+  - Missing vitest types: add `"types": ["vitest/globals"]` to tsconfig
+  - Express `req.params` type: cast with `as string`
+  - Missing module declarations: add `.d.ts` files
+  Re-prompt the Code Writer with the compilation errors. Retry up to 2
+  times. If still failing after fixes, log the errors and proceed to
+  reviews (compilation issues are flagged in the report but don't block).
+
 ### Step 4e: Spec Compliance Review
 
 **Why**: Passing tests do not guarantee the spec is met. Tests may be incomplete,
@@ -511,15 +544,20 @@ cd {user_cwd} && {testCommand}
 
 ## Phase 5b: QA Test Plan and E2E Testing
 
+**NON-NEGOTIABLE**: This phase MUST run if the project has frontend units.
+Do not skip it. Do not defer it. Do not proceed to Phase 6 without it.
+The QA test plan is a deliverable — its absence means the session is incomplete.
+
 **Why**: Unit tests and code reviews verify individual units. But real users
 interact through the UI — clicking buttons, filling forms, navigating tabs.
-A manual QA test plan catches integration bugs, UI glitches, and broken flows
-that unit tests cannot reach.
+The v2 pizza app comparison proved this: apps with 499 passing unit tests
+still had broken frontends (App.tsx not wiring components, unclickable buttons,
+blank analytics tabs). Only E2E testing catches these.
 
 ### Step 1: Generate QA Test Plan
 
-After Phase 5's final review, generate a comprehensive QA test plan document
-at `{user_cwd}/qa-test-plan.md`. The plan must cover:
+Generate a comprehensive QA test plan at `{user_cwd}/qa-test-plan.md`.
+Verify the file exists on disk after writing (`test -f`). The plan must cover:
 
 - **Every CRUD operation** for every entity (create, read, update, delete)
 - **Every UI tab/page** with step-by-step interaction sequences
@@ -616,6 +654,11 @@ The report is written to `{user_cwd}/tdd-report.md`.
 - **Generate a report when check-state.ts reports violations.** Fix first.
 - **Proceed past exit code 1 without retrying or escalating.** A script failure
   means a verification failed. The model must act on it.
+- **Skip Phase 5b when frontend units exist.** The QA test plan and E2E testing
+  are mandatory for projects with frontend. `qa-test-plan.md` must exist before
+  Phase 6. If Chrome is unavailable, the test plan is still generated.
+- **Skip the frontend integration check after Wave 2.** Every frontend component
+  must be wired into the app entry point and the app must serve HTTP 200.
 
 ## Artifacts
 

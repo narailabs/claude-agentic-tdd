@@ -1,12 +1,17 @@
 ---
 name: tdd
 description: >
-  Enforced Test-Driven Development with agent teams. Decomposes features into
-  test-first agent pairs with anti-cheat guardrails. Use when: (1) user invokes
-  /tdd command, (2) user says "implement X with tests" or "TDD" or "test-driven",
-  (3) adding test coverage to existing code with TDD approach, (4) implementing
-  against a user-provided failing test, (5) executing an implementation plan with
-  mixed code and non-code tasks. Requires CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1.
+  Build features and full-stack apps using strict Test-Driven Development with
+  agent teams, anti-cheat verification, and E2E browser testing. Always use this
+  skill when the user wants to: build or implement something with tests, use TDD
+  or test-driven development, implement a feature with "tests first" or "write
+  tests before code", add test coverage to existing code, implement code against
+  a failing test file, execute a multi-task implementation plan, build a full-stack
+  app (backend + frontend), or invoke /tdd. Also use when the user mentions
+  "red-green-refactor", "test-first", wants "no shortcuts" or "no cheating" in
+  tests, asks to "resume" a TDD session, or wants comprehensive QA testing of
+  their app. This skill handles everything from simple utilities to complex
+  full-stack applications with React frontends and Express backends.
 ---
 
 # Agentic TDD

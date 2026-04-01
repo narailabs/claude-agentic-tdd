@@ -12,6 +12,7 @@ description: >
   tests, asks to "resume" a TDD session, or wants comprehensive QA testing of
   their app. This skill handles everything from simple utilities to complex
   full-stack applications with React frontends and Express backends.
+  Requires CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1.
 ---
 
 # Agentic TDD

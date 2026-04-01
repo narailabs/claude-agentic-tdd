@@ -98,6 +98,7 @@ interface WorkUnitDef {
   name: string;
   specContract: string;
   unitType?: string;
+  wave?: "backend" | "frontend" | "fullstack";
   dependsOn?: string[];
   complexity?: string;
 }
@@ -106,6 +107,7 @@ const unitDefs = JSON.parse(workUnitsJson) as WorkUnitDef[];
 for (const def of unitDefs) {
   const unit = createWorkUnit(def.id, def.name, def.specContract, {
     unitType: def.unitType === "task" ? UnitType.TASK : UnitType.CODE,
+    wave: def.wave ?? "backend",
     dependsOn: def.dependsOn,
     complexity:
       def.complexity === "mechanical"

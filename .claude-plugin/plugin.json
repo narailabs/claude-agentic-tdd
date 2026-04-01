@@ -1,7 +1,7 @@
 {
   "name": "agentic-tdd",
   "description": "Enforced Test-Driven Development with Claude Code agent teams. Fullstack unit pipeline (backend+frontend in one unit), TypeScript verification scripts enforce anti-cheat via Bash with tsc compilation checks built-in. Script output visible in conversation — cannot be fabricated.",
-  "version": "4.7.1",
+  "version": "4.8.0",
   "author": {
     "name": "NarAI Labs",
     "url": "https://github.com/narailabs"

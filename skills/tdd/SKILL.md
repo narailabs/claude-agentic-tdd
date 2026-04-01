@@ -250,6 +250,11 @@ For the default React stack:
 **Why**: The state file enables resume after interruption and provides the
 data source for the final report.
 
+**CRITICAL**: Map ALL parsed flags from `$ARGUMENTS` into `--config-json`.
+If the user passed `--effort max --model-strategy capable`, those MUST appear
+in the config JSON. The script uses `createDefaultConfig()` and only applies
+overrides from `--config-json` — anything not passed here is lost.
+
 ```bash
 cd {plugin_root} && npx tsx skills/tdd/scripts/init-state.ts \
   --working-dir {user_cwd} \
@@ -257,11 +262,17 @@ cd {plugin_root} && npx tsx skills/tdd/scripts/init-state.ts \
   --entry-mode "{mode}" \
   --framework-json '{...}' \
   --work-units-json '[...]' \
+  --config-json '{"effort":"{effort}","modelStrategy":"{modelStrategy}","maxParallelPairs":{parallel},"skipFailed":{skipFailed}}' \
   --force
 ```
 
-Pass `--design-summary "{summary}"` if Phase 0 ran. Pass `--config-json '{...}'`
-to override defaults (e.g., maxRetries, maxParallelPairs from flags).
+The `--work-units-json` array MUST include `wave` for each unit:
+```json
+[{"id":"menu","name":"Menu","specContract":"...","unitType":"code","wave":"backend",...},
+ {"id":"menu-tab","name":"Menu Tab","specContract":"...","unitType":"code","wave":"frontend",...}]
+```
+
+Pass `--design-summary "{summary}"` if Phase 0 ran.
 
 Verify exit 0 and that the output confirms `stateFile` and `logFile` were created.
 

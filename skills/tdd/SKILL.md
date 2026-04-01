@@ -317,8 +317,13 @@ concurrent pipelines. Backend units follow the standard pipeline (Steps
 4a–4g). Fullstack units follow the **Fullstack Unit Pipeline** below.
 Wait for all Wave 1 units to finish.
 
-**Between waves — Frontend Sub-Spec Synthesis**: After all Wave 1 units
-complete, before dispatching pure-frontend units:
+**After Wave 1 — E2E Checkpoint** (if fullstack units exist and Chrome is
+available): Fullstack units built both backend and frontend. Run E2E now
+to catch integration bugs early — don't wait until the end. See
+**E2E Checkpoint Protocol** below.
+
+**Between waves — Frontend Sub-Spec Synthesis**: After Wave 1 E2E passes
+(or if no fullstack units), before dispatching pure-frontend units:
 
 1. Use the Read tool to read the implemented backend route files from disk
    (including backend files from fullstack units)
@@ -343,6 +348,11 @@ framework), use the task pipeline (implementer → spec-compliance + code-qualit
 review, skip adversarial — same as Step 4h for non-code tasks).
 
 If the spec has no pure-frontend units, Wave 2 is skipped entirely.
+
+**After Wave 2 — E2E Checkpoint**: Run E2E on everything built so far (all
+frontend + fullstack features). See **E2E Checkpoint Protocol** below. This
+is the same protocol used after Wave 1 — applied again to catch any new
+bugs from pure-frontend units.
 
 ### Fullstack Unit Pipeline
 
@@ -378,6 +388,12 @@ was just written within this same unit.
 3. Step 4c: Code Writer — implements frontend files
 4. Step 4d: GREEN verification — on frontend test files
 
+**Mid-unit E2E Checkpoint** (if Chrome is available):
+After the frontend pass's GREEN verification, before reviews, run the
+**E2E Checkpoint Protocol** scoped to this unit's features. This catches
+frontend/backend data contract mismatches within the unit immediately —
+the exact bug class that killed pizza-sdk-max's Order Tracking tab.
+
 **Combined Reviews** (run once on ALL files — backend + frontend together):
 1. Step 4e: Spec compliance review — checks the full feature
 2. Step 4f: Adversarial review — checks the full feature
@@ -387,20 +403,53 @@ State updates: call `update-state.ts` after each verification (backend RED,
 backend GREEN, frontend RED, frontend GREEN) so the resume flow knows
 exactly where to restart if interrupted.
 
-**After Wave 2 — Frontend Integration Check**: Once all frontend units are
-COMPLETED, verify the app actually works end-to-end:
+### E2E Checkpoint Protocol
 
-1. **Entry point wiring**: Read the main app entry file (e.g., `App.tsx`,
-   `main.tsx`, `index.html`). Verify it imports and renders ALL frontend
-   components/tabs that were built. If components exist but aren't wired
-   into the app shell, dispatch a fix agent to wire them up.
-2. **Smoke test**: Start the server via Bash (background), wait 3 seconds,
-   then `curl http://localhost:{port}`. Verify HTTP 200 and the response
-   contains expected content (e.g., the app title or root div). Kill the
-   server after the check.
-3. **Compilation**: Run `npx tsc --noEmit` on the full project. If errors
-   exist, dispatch a fix agent.
-4. If any check fails, fix and re-check (max 2 iterations).
+This protocol is used at multiple points: after each fullstack unit's
+frontend pass, after Wave 1 (if fullstack units exist), after Wave 2,
+and in Phase 5b. The scope varies (single unit vs all features) but the
+process is the same.
+
+**Skip condition**: If `{chrome_available}` is false, skip E2E and note
+it in the log. The protocol is mandatory when Chrome is available.
+
+**Step 1 — Smoke test**:
+1. Start the application server via Bash (background)
+2. Wait 3 seconds, then `curl http://localhost:{port}`
+3. Verify HTTP 200 and response contains expected content
+4. If it fails, fix and re-check (max 2 attempts)
+
+**Step 2 — E2E test the relevant features**:
+1. Open a Chrome tab via `mcp__claude-in-chrome__tabs_create_mcp`
+2. Navigate to the app URL
+3. For each feature in scope (the unit's features, or all features):
+   - Exercise the UI: click, type, navigate, submit forms
+   - Verify page state via `mcp__claude-in-chrome__read_page`
+   - Screenshot key checkpoints
+   - Record PASS/FAIL with evidence
+4. Append results to `{user_cwd}/qa-results.md`
+
+**Step 3 — Fix bugs immediately via TDD team**:
+If any test case FAILS, do NOT continue testing. Fix first:
+
+1. **Stop testing.** Document the failure: test case ID, steps to
+   reproduce, expected vs actual, screenshot evidence. Classify:
+   data-contract mismatch, missing wiring, logic error, or display bug.
+2. **Spawn a fix team.** Dispatch a teammate (using the existing
+   `{team_name}`) with the bug report as its spec-contract. The
+   teammate must:
+   a. Write a failing unit test that reproduces the bug
+   b. Run verify-red.ts to confirm the test fails
+   c. Fix the implementation
+   d. Run verify-green.ts to confirm the fix + test file unchanged
+3. **Wait for the fix team to complete.** Do not proceed until the
+   teammate reports the fix is GREEN-verified.
+4. **Re-test the failing case via Chrome.** Verify it now passes.
+5. **Continue testing** from where you stopped. If the fix introduced
+   new failures, repeat this protocol (max 3 fix cycles per checkpoint).
+
+This stop-fix-verify-continue loop ensures bugs are caught and fixed
+at the point of discovery, not accumulated into a backlog.
 
 For each work unit, execute steps 4a through 4g. Entry mode affects the flow:
 
@@ -624,7 +673,7 @@ cd {user_cwd} && {testCommand}
 4. Spec gap retrospective: flag assumptions made, unused dependencies, and
    ambiguous interpretations encountered during the session
 
-## Phase 5b: QA Test Plan and E2E Testing
+## Phase 5b: QA Test Plan and Final E2E
 
 **NON-NEGOTIABLE**: This phase MUST run if the project has frontend units.
 Do not skip it. Do not defer it. Do not proceed to Phase 6 without it.
@@ -632,22 +681,24 @@ The QA test plan is a deliverable — its absence means the session is incomplet
 
 **Why**: Unit tests and code reviews verify individual units. But real users
 interact through the UI — clicking buttons, filling forms, navigating tabs.
-The v2 pizza app comparison proved this: apps with 499 passing unit tests
-still had broken frontends (App.tsx not wiring components, unclickable buttons,
-blank analytics tabs). Only E2E testing catches these.
+Earlier E2E checkpoints (after waves) caught per-feature bugs. This final
+pass catches cross-feature integration issues: flows that span multiple
+tabs, data that should propagate across features, and full user journeys.
 
 ### Step 1: Generate QA Test Plan
 
 Generate a comprehensive QA test plan at `{user_cwd}/qa-test-plan.md`.
-Verify the file exists on disk after writing (`test -f`). The plan must cover:
+Verify the file exists on disk after writing (`test -f`). The plan must
+include cross-feature tests that earlier per-wave checkpoints could not
+cover:
 
+- **Cross-feature flows** — e.g., create customer → place order → track →
+  deliver → check analytics reflects the order
 - **Every CRUD operation** for every entity (create, read, update, delete)
 - **Every UI tab/page** with step-by-step interaction sequences
 - **Every form** with valid input, invalid input, and edge cases
 - **Every status transition** and its UI feedback
 - **All error states** — what the user should see for each error
-- **Cross-feature flows** — e.g., create customer → place order → track →
-  deliver → check analytics reflects the order
 - **Destructive actions** — cancel, delete — verify confirmation dialogs
 
 Format each test case as:
@@ -661,48 +712,12 @@ Format each test case as:
 **Expected**: {what should happen}
 ```
 
-### Step 2: E2E Testing via Chrome Extension
+### Step 2: Final E2E Run
 
-If `{chrome_available}` is true and the project has frontend units:
-
-1. Start the application server via Bash (background process)
-2. Use `mcp__claude-in-chrome__tabs_create_mcp` to open a new tab
-3. Navigate to the app URL
-4. Execute each test case from the QA test plan sequentially:
-   - Use `mcp__claude-in-chrome__computer` for clicks, typing, navigation
-   - Use `mcp__claude-in-chrome__read_page` to verify page state
-   - Use `mcp__claude-in-chrome__computer` with `action: "screenshot"` to
-     capture evidence at key checkpoints
-   - Record PASS/FAIL for each test case with evidence
-5. Write results to `{user_cwd}/qa-results.md`
-
-### Step 3: Fix Loop (Mandatory)
-
-**E2E bugs must be fixed before proceeding.** Do not defer them. Do not log
-them and move on. A broken frontend with passing unit tests is a failed
-delivery — the pizza-sdk-max eval proved that 483 unit tests missed a P0
-crash that E2E caught in seconds.
-
-If any test cases FAIL:
-
-1. **Triage**: Collect all failures into a bug report with: test case ID,
-   steps to reproduce, expected vs actual, screenshot evidence. Classify
-   each as data-contract mismatch (frontend expects different shape than
-   API returns), missing wiring (component not connected), logic error,
-   or styling/display issue.
-2. **Fix via TDD**: For each bug (or group of related bugs):
-   a. Write a failing test that reproduces the bug (if no test covers it)
-   b. Run verify-red.ts to confirm the test fails
-   c. Dispatch a Code Writer teammate to fix the implementation
-   d. Run verify-green.ts to confirm the fix + no regressions
-   e. Update state via update-state.ts
-3. **Re-test via Chrome**: After all fixes, re-run the FAILING test cases
-   via Chrome extension. Verify each now passes.
-4. **Regression check**: Also re-run 2-3 previously passing test cases to
-   ensure fixes didn't break anything else.
-5. If new failures emerge, repeat (max 3 iterations).
-6. After all test cases pass or max iterations reached, update
-   `qa-results.md` with final results.
+Run the **E2E Checkpoint Protocol** (defined in Phase 4) scoped to ALL
+features — the full QA test plan. This is the comprehensive pass that
+exercises cross-feature flows. The stop-fix-verify-continue loop applies:
+any bug found spawns a TDD fix team immediately.
 
 If `{chrome_available}` is false: skip E2E testing, present the QA test plan
 to the user, and suggest they run it manually or with the Chrome extension

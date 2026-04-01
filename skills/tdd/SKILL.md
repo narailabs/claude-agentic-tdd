@@ -615,7 +615,17 @@ in a future session.
 **Why**: The report is the deliverable. But it must not be generated from
 inconsistent state — that would produce a misleading report.
 
-First, verify state consistency:
+**HARD GATE**: If the project has frontend units, verify `qa-test-plan.md`
+exists before proceeding:
+```bash
+test -f {user_cwd}/qa-test-plan.md && echo "QA plan exists" || echo "MISSING"
+```
+If MISSING: **STOP. Go back and run Phase 5b.** Do not generate the report
+without the QA test plan. If Chrome is available, `qa-results.md` must also
+exist (E2E tests must have run). This gate exists because Phase 5b was
+skipped in real-world runs, shipping apps with broken frontends.
+
+Then verify state consistency:
 ```bash
 cd {plugin_root} && npx tsx skills/tdd/scripts/check-state.ts \
   --working-dir {user_cwd}

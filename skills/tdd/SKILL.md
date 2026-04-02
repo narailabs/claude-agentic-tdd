@@ -406,8 +406,8 @@ to catch integration bugs early — don't wait until the end. See
    - **UI primitives to use**: "Import Button, Card, Input, Table from
      `../ui/`. Use Card for content sections, Table for data grids, Badge
      for status indicators. Follow the design system established in F2."
-5. Write each frontend sub-spec to `spec-contract-{unit.id}.md` on disk
-6. **Verify sub-specs exist** — for each frontend unit, confirm the file was
+6. Write each frontend sub-spec to `spec-contract-{unit.id}.md` on disk
+7. **Verify sub-specs exist** — for each frontend unit, confirm the file was
    written:
    ```bash
    test -f {user_cwd}/spec-contract-{unit.id}.md && echo "OK" || echo "MISSING"
@@ -542,6 +542,8 @@ If any test case FAILS, do NOT continue testing. Fix first:
 
 This stop-fix-verify-continue loop ensures bugs are caught and fixed
 at the point of discovery, not accumulated into a backlog.
+
+### Per-Unit Pipeline
 
 For each work unit, execute steps 4a through 4g. Entry mode affects the flow:
 

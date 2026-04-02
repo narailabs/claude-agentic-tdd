@@ -62,6 +62,7 @@ Parse `$ARGUMENTS` for:
 - `--effort <level>`: reasoning effort (`low`, `medium`, `high` (default), `max`)
 - `--parallel <N>`: max concurrent unit pipelines (default 4)
 - `--model-strategy <s>`: `auto`, `standard`, `capable`
+- `--vanilla`: use vanilla HTML/CSS/JS for frontend instead of React (overrides the default)
 - `--resume`: resume from existing `.tdd-state.json`
 
 ## Resume Flow (when `--resume` is set)
@@ -233,7 +234,22 @@ reflect the chosen framework. Getting this wrong wastes an entire wave.
 | Existing project has a framework (brownfield) | Use what's already there |
 | Spec explicitly names a framework | Use what the spec says |
 | Spec explicitly says "vanilla JS" or "no frameworks" | Vanilla HTML/CSS/JS |
+| User passed `--vanilla` flag | Vanilla HTML/CSS/JS |
 | **Spec does NOT mention a frontend framework** | **React + Vite + Tailwind CSS + shadcn/ui** |
+
+**HARD GATE — no silent overrides**: The React default exists because it
+enables the full TDD pipeline for frontend (test writer → red → code writer
+→ green → adversarial review via @testing-library/react). Vanilla JS skips
+all of this and falls back to the weaker task pipeline. Do NOT rationalize
+around this default based on project hints like `.gitignore` entries,
+`tsconfig` excludes, or "the spec implies a monolith." Those are not
+explicit vanilla requests. If the spec does not say "vanilla JS" or "no
+frameworks" and the user did not pass `--vanilla`, use React. Period.
+
+If you believe React is genuinely wrong for this project, you MUST pause
+and ask the user: "The spec doesn't specify a frontend framework. The TDD
+default is React (for testability). Should I use React, or do you prefer
+vanilla JS? Note: vanilla JS skips frontend unit tests."
 
 For the default React stack:
 - First frontend unit must set up the project: `npm create vite@latest`
@@ -363,6 +379,12 @@ to catch integration bugs early — don't wait until the end. See
    - Error handling (what errors the API returns, how to display them)
    - State management approach (what data to fetch, when to refresh)
 5. Write each frontend sub-spec to `spec-contract-{unit.id}.md` on disk
+6. **Verify sub-specs exist** — for each frontend unit, confirm the file was
+   written:
+   ```bash
+   test -f {user_cwd}/spec-contract-{unit.id}.md && echo "OK" || echo "MISSING"
+   ```
+   Do not dispatch frontend units without verified sub-specs on disk.
 
 This is the key quality difference — frontend agents get a detailed spec
 informed by the actual backend implementation, not just the raw spec section.
@@ -453,7 +475,23 @@ it in the log. The protocol is mandatory when Chrome is available.
    - Verify page state via `mcp__claude-in-chrome__read_page`
    - Screenshot key checkpoints
    - Record PASS/FAIL with evidence
-4. Append results to `{user_cwd}/qa-results.md`
+4. **Write results to `{user_cwd}/qa-results.md`** — this file is a
+   deliverable. Each test must have an entry with: test case ID,
+   steps performed, expected vs actual, PASS/FAIL verdict, and
+   screenshot reference if applicable. Use this format:
+   ```markdown
+   ### E2E-{N}: {Feature Name}
+   **Status**: PASS | FAIL
+   **Steps**: {what was done}
+   **Expected**: {what should happen}
+   **Actual**: {what happened}
+   ```
+5. **Verify the file was created**:
+   ```bash
+   test -f {user_cwd}/qa-results.md && echo "qa-results.md exists" || echo "MISSING"
+   ```
+   If MISSING after completing E2E tests, something went wrong — stop and
+   investigate before proceeding.
 
 **Step 3 — Fix bugs immediately via TDD team**:
 If any test case FAILS, do NOT continue testing. Fix first:
@@ -546,6 +584,16 @@ cd {plugin_root} && npx tsx skills/tdd/scripts/update-state.ts \
 Test Writer's conversation. This information barrier ensures the implementation
 is driven by the tests alone, not by shared context.
 
+**Shared file conflict prevention**: When multiple Code Writers run in
+parallel (e.g., 4 API route units), they may need to modify the same
+shared files (like `app.ts` for wiring new routers). This causes race
+conditions and tsc errors. Before dispatching parallel Code Writers,
+check if any units in the batch share implementation files. If they do,
+either (a) run those units sequentially, or (b) designate ONE unit as the
+"wiring" unit that modifies shared files and instruct other units to only
+modify their own route files. The Code Writer prompt should explicitly
+list which files it may create/modify and which it must NOT touch.
+
 1. Use the **Read tool** to read the test files from disk
 2. Use the **Read tool** to read `spec-contract-{unit.id}.md` from disk
 3. Use the Read tool to load `reference/code-writer-prompt.md` from the plugin
@@ -612,6 +660,16 @@ mismatches).
 
 You do NOT need to run `tsc --noEmit` separately — just pass `--language`
 to verify-green.ts and check the `tscCheck` field in the response.
+
+### Steps 4e–4g: Reviews (One Unit Per Reviewer)
+
+**No consolidated reviews**: Each unit gets its own dedicated reviewer
+agents. Do NOT batch multiple units into a single reviewer (e.g., "review
+Menu + Customer routes together"). Consolidated reviews are shallower —
+reviewers lose focus when context-switching between units, and issues in
+one unit get less attention when another unit is also being reviewed.
+Dispatch separate reviewer agents for each unit, even if that means more
+agents running in parallel.
 
 ### Step 4e: Spec Compliance Review
 
@@ -682,6 +740,14 @@ the template, dispatch a teammate. After completion, run spec compliance review
 and code quality review (skip adversarial review since there is no test/impl
 pair to verify). Mark completed when reviews pass.
 
+**Frontend task units have weaker verification** — they skip 5 of 7 pipeline
+steps (test writer, RED, code writer, GREEN, adversarial). This makes E2E
+testing the critical compensating control. When frontend units use the task
+pipeline (vanilla JS), the Wave 2 E2E checkpoint and Phase 5b E2E are
+**mandatory, not optional** — even more so than for React frontends which
+have unit tests. If Chrome is unavailable, log a prominent warning in the
+report: "Frontend units were implemented without unit tests OR E2E testing."
+
 ### Failure Handling
 
 If a unit exhausts maxRetries at any step:
@@ -750,6 +816,24 @@ features — the full QA test plan. This is the comprehensive pass that
 exercises cross-feature flows. The stop-fix-verify-continue loop applies:
 any bug found spawns a TDD fix team immediately.
 
+**Minimum E2E coverage** — do not consider E2E complete until you have:
+1. Visited every tab/page and verified it renders without JS errors
+2. Tested every CRUD operation per entity via the UI (not just API):
+   - Create: fill form, submit, verify success feedback
+   - Read: look up the created entity, verify data displays
+   - Update: modify a field, verify the change persists
+   - Delete/Cancel: perform the destructive action, verify state change
+3. Tested at least one cross-feature flow end-to-end (e.g., register
+   customer → place order → track → deliver → check analytics)
+4. Tested at least one error case per form (invalid input → error message)
+5. Verified data propagates between tabs (order placed in Tab 3 appears
+   in Tab 4 tracking, completed order shows in Tab 6 analytics)
+
+The model tends to screenshot 2-3 tabs and declare E2E "done." That is
+not E2E testing — it is a smoke test. Real E2E means clicking every
+button, filling every form, and verifying every response. Budget time
+for this. If it takes 20+ Chrome interactions, that's normal.
+
 If `{chrome_available}` is false: skip E2E testing, present the QA test plan
 to the user, and suggest they run it manually or with the Chrome extension
 in a future session.
@@ -759,15 +843,21 @@ in a future session.
 **Why**: The report is the deliverable. But it must not be generated from
 inconsistent state — that would produce a misleading report.
 
-**HARD GATE**: If the project has frontend units, verify `qa-test-plan.md`
-exists before proceeding:
+**HARD GATE**: If the project has frontend units, verify BOTH deliverables
+exist before proceeding. Run these checks — do not skip them:
 ```bash
-test -f {user_cwd}/qa-test-plan.md && echo "QA plan exists" || echo "MISSING"
+test -f {user_cwd}/qa-test-plan.md && echo "QA plan: OK" || echo "QA plan: MISSING"
+test -f {user_cwd}/qa-results.md && echo "QA results: OK" || echo "QA results: MISSING"
 ```
-If MISSING: **STOP. Go back and run Phase 5b.** Do not generate the report
-without the QA test plan. If Chrome is available, `qa-results.md` must also
-exist (E2E tests must have run). This gate exists because Phase 5b was
-skipped in real-world runs, shipping apps with broken frontends.
+If `qa-test-plan.md` is MISSING: **STOP. Go back and run Phase 5b Step 1.**
+If `qa-results.md` is MISSING and `{chrome_available}` is true: **STOP. Go
+back and run Phase 5b Step 2.** Do not generate the report without running
+E2E tests when Chrome is available. If Chrome is unavailable, `qa-results.md`
+may be absent — but `qa-test-plan.md` is always required.
+
+This gate exists because Phase 5b was skipped in real-world runs, shipping
+apps with broken frontends. The model tends to rush to report generation
+after seeing all units marked COMPLETED — resist this urge.
 
 Then verify state consistency:
 ```bash
@@ -821,6 +911,12 @@ The report is written to `{user_cwd}/tdd-report.md`.
   Phase 6. If Chrome is unavailable, the test plan is still generated.
 - **Skip the frontend integration check after Wave 2.** Every frontend component
   must be wired into the app entry point and the app must serve HTTP 200.
+- **Consolidate reviews across units.** Each unit gets its own reviewer
+  agents. Do not batch "review Menu + Customer routes" into one agent.
+  Consolidated reviews are shallower and miss unit-specific issues.
+- **Override the React default without asking.** If the spec doesn't say
+  vanilla JS, use React. Don't rationalize around this based on project
+  hints — ask the user if you think React is wrong.
 
 ## Artifacts
 

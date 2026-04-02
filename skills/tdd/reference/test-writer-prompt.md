@@ -13,6 +13,10 @@ write any implementation code.
 
 {spec_contract}
 
+## Scene-Setting
+
+{scene_setting}
+
 ## Framework
 
 - Language: {language}
@@ -105,5 +109,27 @@ as the test file, containing:
 | `{test_command}` | From framework detection |
 | `{test_file_paths}` | From work unit decomposition |
 | `{project_conventions_from_claude_md}` | From project CLAUDE.md or "No specific conventions." |
+| `{scene_setting}` | Built by the lead — see Scene-Setting Guide below |
 | `{min_assertions}` | From config, default 1 |
 | `{unit_id}` | Work unit ID |
+
+## Scene-Setting Guide
+
+The lead MUST build `{scene_setting}` for each dispatch. Include:
+
+1. **Where this unit fits**: "This is unit 5 of 16. It implements the Order
+   Management business logic. The Menu (unit 3) and Customer Registry (unit 4)
+   are already implemented and this unit depends on both."
+2. **What's already built**: List completed units and their key exports/APIs.
+   For example: "Menu exports `getPrice(pizzaId, size, toppingIds)`. Customer
+   Registry exports `register()`, `findByEmail()`, `getOrderHistory()`."
+3. **Established patterns**: If prior units set a pattern, describe it.
+   "Error classes follow the pattern: extend Error, set this.name in constructor,
+   take a descriptive message. See src/errors.ts for examples."
+4. **What depends on this unit**: "Order Routes (unit 10) and the Place Order
+   frontend tab (unit 17) will consume the OrderManager class."
+5. **Shared files**: "The Express app is wired in src/app.ts. Route files
+   export factory functions like `createMenuRouter(menu)` that app.ts calls."
+
+Keep it concise — 5-10 lines. The Test Writer needs enough context to write
+tests that integrate correctly, but not so much that it's overwhelmed.

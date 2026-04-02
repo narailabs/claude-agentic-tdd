@@ -15,6 +15,10 @@ You are reviewing the code quality of an implementation.
 
 [From the implementer's or Code Writer's report — what they claim they built]
 
+## Scene-Setting
+
+{scene_setting}
+
 ## Your Job
 
 Read the actual code and evaluate:

@@ -525,13 +525,35 @@ For each work unit, execute steps 4a through 4g. Entry mode affects the flow:
   uses hide-and-restore (renames impl → tests fail → restore → Code Writer fixes).
 - **`plan-execution`**: Code units → 4a–4g. Non-code task units → Step 4h.
 
+### Building Scene-Setting Context
+
+Before dispatching ANY teammate (Test Writer, Code Writer, or Reviewer),
+build a `{scene_setting}` block for this unit. This gives the teammate
+architectural context without polluting its focus. Include:
+
+1. **Where this unit fits**: unit N of M, what it implements, wave
+2. **Dependencies**: which completed units it depends on, their key exports
+3. **Established patterns**: how prior units structured code (error classes,
+   factory functions, file layout) — so this unit stays consistent
+4. **What depends on this unit**: downstream units that will consume its API
+5. **Shared files**: files this unit must read from or integrate with
+
+Example: "This is unit 5 of 16 (wave: backend). It implements OrderManager,
+which depends on Menu (getPrice) and CustomerRegistry (getById). Prior
+library classes are standalone with constructor injection. Error handling
+uses typed errors from src/errors.ts. OrderRoutes (unit 10) and the
+PlaceOrder frontend tab (unit 15) will consume this class."
+
+Reuse the SAME scene-setting for all teammates within one unit (Test Writer,
+Code Writer, and all 3 Reviewers). Build it once per unit, not per dispatch.
+
 ### Step 4a: Test Writer
 
 1. Use the Read tool to load `reference/test-writer-prompt.md` from the plugin
 2. Extract the template block (between the ``` markers)
 3. Fill all placeholders: `{spec_contract}`, `{language}`, `{test_runner}`,
    `{test_command}`, `{test_file_paths}`, `{min_assertions}`, `{unit_id}`,
-   `{project_conventions_from_claude_md}`
+   `{project_conventions_from_claude_md}`, `{scene_setting}`
 4. Dispatch a teammate using the Agent tool with `team_name: {team_name}`
    and `model: {model_for_test_writer}` (see Model Selection table above).
    Give it tools: Read, Write, Glob, Grep, Bash. Send the filled prompt.

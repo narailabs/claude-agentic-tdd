@@ -29,6 +29,10 @@ The following test file(s) must pass after your implementation:
 
 {spec_contract_file_contents}
 
+## Scene-Setting
+
+{scene_setting}
+
 ## Framework
 
 - Language: {language}
@@ -111,12 +115,39 @@ tests yourself.
 | `{test_command}` | From framework detection |
 | `{impl_file_paths}` | From work unit decomposition |
 | `{project_conventions_from_claude_md}` | From project CLAUDE.md or "No specific conventions." |
+| `{scene_setting}` | Built by the lead — see Scene-Setting Guide below |
+
+## Scene-Setting Guide
+
+The lead MUST build `{scene_setting}` for Code Writer dispatches. This provides
+architectural context WITHOUT violating the information barrier.
+
+**Include:**
+1. **Where this unit fits**: "This is the Order Management implementation.
+   It depends on Menu and CustomerRegistry which are already implemented."
+2. **Established patterns**: "Other library classes (Menu, CustomerRegistry)
+   are standalone classes with constructor injection. Error handling uses
+   custom error classes from src/errors.ts (e.g., `throw new OrderNotFoundError(id)`)."
+3. **Shared file conventions**: "Route files export factory functions like
+   `createMenuRouter(menu: Menu)`. The app wires them in src/app.ts."
+4. **Key interfaces this code must match**: "OrderManager constructor takes
+   `(menu: Menu, registry: CustomerRegistry)`. Other units will import
+   OrderManager and call `createOrder()`, `getOrder()`, `updateStatus()`."
+
+**Do NOT include:**
+- Test Writer's reasoning, approach, or any mention of how tests were designed
+- Implementation hints beyond what the spec-contract and architecture state
+- Specific test case values or expected outputs
+
+Keep it concise — 5-10 lines of architectural context.
 
 ## Lead Verification Checklist
 
 Before spawning the Code Writer, the lead MUST verify:
 - [ ] Prompt contains test file contents read from DISK (not from Test Writer messages)
 - [ ] Prompt contains spec-contract read from DISK
+- [ ] Prompt contains scene-setting with architectural context
 - [ ] Prompt does NOT contain any Test Writer prompt text
 - [ ] Prompt does NOT contain "Test Writer", "Agent A", or references to the test authoring process
+- [ ] Scene-setting does NOT contain implementation hints beyond architecture
 - [ ] Test file checksums have been recorded for GREEN verification

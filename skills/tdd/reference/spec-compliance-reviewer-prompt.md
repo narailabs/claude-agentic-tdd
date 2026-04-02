@@ -21,6 +21,9 @@ spec contract. You do NOT trust the Test Writer's or Code Writer's self-assessme
 ### Design Summary (if available)
 {design_summary}
 
+### Scene-Setting
+{scene_setting}
+
 ### Test Files
 {test_file_contents}
 
@@ -120,3 +123,4 @@ can be noted but doesn't block.
 | `{test_file_contents}` | Read from disk: test files |
 | `{impl_file_contents}` | Read from disk: implementation files |
 | `{unit_name}` | Work unit name |
+| `{scene_setting}` | Architectural context: where this unit fits, dependencies, what consumes it |

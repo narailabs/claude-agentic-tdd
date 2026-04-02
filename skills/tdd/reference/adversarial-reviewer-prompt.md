@@ -14,6 +14,9 @@ and catch cheating.
 ### Spec Contract
 {spec_contract}
 
+### Scene-Setting
+{scene_setting}
+
 ### Test Files
 {test_file_contents}
 
@@ -134,3 +137,4 @@ Minor recommendations can still be included.
 | `{impl_file_contents}` | Read from disk: implementation files |
 | `{unit_name}` | Work unit name |
 | `{min_assertions}` | From config, default 1 |
+| `{scene_setting}` | Architectural context: where this unit fits, what depends on it, integration points |

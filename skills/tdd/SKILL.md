@@ -251,10 +251,33 @@ and ask the user: "The spec doesn't specify a frontend framework. The TDD
 default is React (for testability). Should I use React, or do you prefer
 vanilla JS? Note: vanilla JS skips frontend unit tests."
 
-For the default React stack:
-- First frontend unit must set up the project: `npm create vite@latest`
-  (React + TypeScript template), install `tailwindcss`, `@tailwindcss/vite`,
-  `shadcn/ui` dependencies, and `@testing-library/react` for tests
+For the default React stack, the frontend wave MUST start with two setup units
+(both `unitType: "task"`, `wave: "frontend"`), executed in order before any
+tab/page units:
+
+**Unit F1 — Project Setup**: `npm create vite@latest` (React + TypeScript
+template), install `tailwindcss`, `@tailwindcss/vite`, `@radix-ui/react-tabs`,
+`lucide-react`, `class-variance-authority`, `clsx`, `tailwind-merge`, and
+`@testing-library/react` + `@testing-library/jest-dom` for tests.
+
+**Unit F2 — Design System + UI Primitives**: Create reusable UI components
+in `src/components/ui/` BEFORE any tab components are built. This unit must:
+- Create at minimum: `button.tsx`, `card.tsx`, `input.tsx`, `label.tsx`,
+  `select.tsx`, `table.tsx`, `badge.tsx`, `tabs.tsx`
+- Each component uses Tailwind + `class-variance-authority` for variants
+- Establish the app's visual language: color palette (primary, secondary,
+  accent, muted), card shadows, border radius, heading sizes, form styling
+- Create `src/components/ui/index.ts` barrel export
+- Apply the design to `App.tsx` shell (header with branding, tab navigation
+  using the Tabs primitive, responsive container layout)
+
+All subsequent tab components (Menu, Customers, etc.) MUST import from
+`src/components/ui/` — not use raw HTML elements. The frontend sub-spec
+for each tab unit must reference the available UI primitives: "Use the
+Button, Card, Input, Table, Badge components from `../ui/`. Follow the
+established design system."
+
+Additional rules:
 - All frontend file paths use `src/components/*.tsx`, NOT `public/app.js`
 - The main entry (`App.tsx`) must import and render ALL tab/page components
 - Do NOT fall back to vanilla JS unless the spec explicitly requests it
@@ -372,12 +395,17 @@ to catch integration bugs early — don't wait until the end. See
 2. Extract: endpoint paths, HTTP methods, request body shapes, response shapes,
    error response formats
 3. Read the original spec's frontend section
-4. For each frontend unit, synthesize an enriched sub-spec that includes:
+4. Read the UI primitives created by the Design System unit (F2) — list
+   available components, their variants, and import paths
+5. For each frontend unit, synthesize an enriched sub-spec that includes:
    - Available API endpoints with example request/response shapes
    - Component/page responsibilities from the spec
    - User interaction flows (what happens on click, submit, navigate)
    - Error handling (what errors the API returns, how to display them)
    - State management approach (what data to fetch, when to refresh)
+   - **UI primitives to use**: "Import Button, Card, Input, Table from
+     `../ui/`. Use Card for content sections, Table for data grids, Badge
+     for status indicators. Follow the design system established in F2."
 5. Write each frontend sub-spec to `spec-contract-{unit.id}.md` on disk
 6. **Verify sub-specs exist** — for each frontend unit, confirm the file was
    written:
